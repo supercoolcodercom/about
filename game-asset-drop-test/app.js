@@ -4,6 +4,13 @@
     const ctx = canvas.getContext('2d');
     ctx.imageSmoothingEnabled = false;
 
+    // Blur active inputs when clicking canvas to refocus the game
+    canvas.addEventListener('click', () => {
+        if (document.activeElement) {
+            document.activeElement.blur();
+        }
+    });
+
     // Game Constants
     const GRAVITY = 0.45;
     const FRICTION = 0.82;
@@ -925,6 +932,9 @@
     // ==========================================
 
     window.addEventListener('keydown', (e) => {
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') {
+            return;
+        }
         if (e.code === 'ArrowLeft' || e.code === 'KeyA') {
             keys.ArrowLeft = true;
         }
@@ -946,6 +956,9 @@
     });
 
     window.addEventListener('keyup', (e) => {
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') {
+            return;
+        }
         if (e.code === 'ArrowLeft' || e.code === 'KeyA') {
             keys.ArrowLeft = false;
         }
