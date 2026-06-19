@@ -1177,9 +1177,93 @@
         requestAnimationFrame(loop);
     }
 
+    // ==========================================
+    // UI CONTROLS & SCREENSHOT SYSTEM
+    // ==========================================
+
+    function setupUIControls() {
+        const btnReset = document.getElementById('btnReset');
+        const btnScreenshot = document.getElementById('btnScreenshot');
+        const flashEl = document.getElementById('screenFlash');
+        const toastContainer = document.getElementById('toastContainer');
+
+        if (btnReset) {
+            btnReset.addEventListener('click', (e) => {
+                resetAllPositions();
+                showToast('Scene Reset Successful', '↺');
+                btnReset.blur();
+            });
+        }
+
+        if (btnScreenshot) {
+            btnScreenshot.addEventListener('click', (e) => {
+                takeScreenshot();
+                btnScreenshot.blur();
+            });
+        }
+
+        function triggerFlash() {
+            if (!flashEl) return;
+            flashEl.classList.add('active');
+            // Force reflow
+            flashEl.offsetHeight;
+            setTimeout(() => {
+                flashEl.classList.remove('active');
+            }, 100);
+        }
+
+        function showToast(message, iconSymbol = '✓') {
+            if (!toastContainer) return;
+
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.innerHTML = `
+                <span class="toast-icon">${iconSymbol}</span>
+                <span class="toast-message">${message}</span>
+            `;
+
+            toastContainer.appendChild(toast);
+
+            // Auto dismiss toast
+            setTimeout(() => {
+                toast.classList.add('fade-out');
+                toast.addEventListener('animationend', () => {
+                    toast.remove();
+                });
+            }, 3000);
+        }
+
+        function takeScreenshot() {
+            try {
+                // Trigger screen flash effect
+                triggerFlash();
+
+                // Convert canvas to image data
+                const dataUrl = canvas.toDataURL('image/png');
+
+                // Create download link
+                const link = document.createElement('a');
+                const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+                link.download = `super-warrior-bros-cover-${timestamp}.png`;
+                link.href = dataUrl;
+
+                // Trigger download
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+
+                showToast('Screenshot saved to downloads!', '✓');
+            } catch (err) {
+                console.error('Failed to take screenshot:', err);
+                showToast('Screenshot failed. Check console.', '✗');
+            }
+        }
+    }
+
     // Initialize the Game
     initScene();
     setupAssetInjectors();
+    setupUIControls();
     requestAnimationFrame(loop);
 
 })();

@@ -29,8 +29,30 @@
                 <div class="arcade-cabinet">
                     <div class="arcade-screen-bezel">
                         <canvas id="gameCanvas" width="800" height="400"></canvas>
+                        <div id="screenFlash" class="screen-flash"></div>
                     </div>
 
+                    <!-- Arcade Cabinet Control Panel -->
+                    <div class="arcade-control-panel">
+                        <div class="arcade-details">
+                            <span class="cabinet-brand">VERSION 1.8</span>
+                            <span class="cabinet-status"><span class="status-dot"></span> LIVE PROTOTYPE</span>
+                        </div>
+                        <div class="cabinet-actions">
+                            <button id="btnReset" class="btn-cabinet secondary" title="Reset Scene (R)">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+                                    <path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/>
+                                </svg>
+                                <span>Reset (R)</span>
+                            </button>
+                            <button id="btnScreenshot" class="btn-cabinet primary" title="Download Screenshot">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+                                    <path d="M4 4h3l2-2h6l2 2h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zm8 3a5 5 0 1 0 0 10 5 5 0 0 0 0-10zm0 2a3 3 0 1 1 0 6 3 3 0 0 1 0-6z"/>
+                                </svg>
+                                <span>Take Screenshot</span>
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Controls & How To Play -->
@@ -441,6 +463,9 @@
             <p class="disclaimer-text">Disclaimer: Experimental AI content. Proceed with verification.</p>
         </footer>
     </div>
+
+    <!-- Toast Notification Container -->
+    <div id="toastContainer" class="toast-container"></div>
 
     <!-- Script loading -->
     <script src="app.js?v=1.8"></script>
