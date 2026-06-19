@@ -408,29 +408,7 @@ kbd {
     text-overflow: ellipsis;
 }
 
-.badge {
-    align-self: flex-start;
-    margin-top: 0.5rem;
-    font-size: 0.55rem;
-    padding: 1px 4px;
-    border-radius: 3px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
-}
 
-.badge-placeholder {
-    background-color: rgba(164, 176, 190, 0.15);
-    color: var(--text-secondary);
-    border: 1px solid rgba(164, 176, 190, 0.25);
-}
-
-.badge-custom {
-    background-color: rgba(46, 213, 115, 0.15);
-    color: var(--accent-green);
-    border: 1px solid rgba(46, 213, 115, 0.25);
-    box-shadow: 0 0 5px rgba(46, 213, 115, 0.1);
-}
 
 .asset-description {
     font-size: 0.8rem;

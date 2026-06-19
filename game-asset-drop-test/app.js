@@ -1000,7 +1000,6 @@
             const previewArea = card.querySelector('.card-preview-area');
             const colorSwatch = card.querySelector('.color-swatch');
             const imgPreview = card.querySelector('.img-preview');
-            const badge = card.querySelector('.badge');
             const resetBtn = card.querySelector('.btn-reset');
             
             // Animation settings controls
@@ -1030,9 +1029,6 @@
                     imgPreview.src = fileUrl;
                     imgPreview.classList.remove('hidden');
 
-                    badge.textContent = 'Custom';
-                    badge.classList.remove('badge-placeholder');
-                    badge.classList.add('badge-custom');
                     card.classList.add('has-custom');
                     resetBtn.classList.remove('hidden');
 
@@ -1085,9 +1081,6 @@
                 imgPreview.src = '';
                 colorSwatch.classList.remove('hidden');
 
-                badge.textContent = 'Placeholder';
-                badge.classList.remove('badge-custom');
-                badge.classList.add('badge-placeholder');
                 card.classList.remove('has-custom');
                 resetBtn.classList.add('hidden');
 
