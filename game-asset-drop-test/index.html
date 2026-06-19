@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Super Warrior Bros. - Interactive Cover Designer</title>
+    <meta name="description" content="An interactive retro browser game prototype of the Super Warrior Bros cover. Control the player character and customize blocks, clouds, and enemies using local images instantly within your browser.">
+    
+    <!-- Google Fonts for retro & modern design -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Press+Start+2P&display=swap" rel="stylesheet">
+    
+    <!-- Link to styles -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header Section -->
+        <header class="game-header">
+            <h1 class="game-title">SUPER WARRIOR BROS.</h1>
+            <p class="game-subtitle">Interactive Cover &amp; Asset Customizer</p>
+        </header>
+
+        <!-- Main Content Area -->
+        <main class="game-main">
+            <!-- Left Panel: Game Screen and Controls -->
+            <section class="game-view-container">
+                <div class="arcade-cabinet">
+                    <div class="arcade-screen-bezel">
+                        <canvas id="gameCanvas" width="800" height="400"></canvas>
+                    </div>
+
+                </div>
+
+                <!-- Controls & How To Play -->
+                <div class="info-card controls-card">
+                    <h2 class="section-title">Controls</h2>
+                    <div class="controls-list">
+                        <div class="control-item">
+                            <kbd>←</kbd> <kbd>→</kbd>
+                            <span>Walk Left / Right</span>
+                        </div>
+                        <div class="control-item">
+                            <kbd>Spacebar</kbd>
+                            <span>Jump (Hold for higher jump)</span>
+                        </div>
+                        <div class="control-item">
+                            <kbd>R</kbd>
+                            <span>Reset Player &amp; Enemy Positions</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Right Panel: Asset Customizer -->
+            <section class="customizer-container">
+                <div class="section-header">
+                    <h2 class="section-title">Asset Customizer</h2>
+                    <p class="section-desc">Upload local images or sprite sheets to replace color placeholders. Enable "Animate Sprite Sheet" and set the frame count to run animations.</p>
+                </div>
+
+                <div class="customizer-grid" id="customizerGrid">
+                    <!-- Asset Card 1: Player (Mario) -->
+                    <div class="asset-card" data-asset="player">
+                        <div class="card-preview-area">
+                            <div class="color-swatch" style="background-color: #ff4757;"></div>
+                            <img class="img-preview hidden" alt="Player Preview">
+                        </div>
+                        <div class="card-info">
+                            <div class="card-header-row">
+                                <span class="asset-name">Player (Mario)</span>
+                                <span class="badge badge-placeholder">Placeholder</span>
+                            </div>
+                            <p class="asset-description"><span class="rec-res">Recommended: 30x42 px</span></p>
+                            <div class="file-input-wrapper">
+                                <label class="btn-upload" for="input-player">Choose Image</label>
+                                <input type="file" id="input-player" accept="image/*" class="file-input">
+                                <button class="btn-reset hidden" title="Reset to default">Reset</button>
+                            </div>
+                            
+                            <!-- Sprite Sheet Animation Settings -->
+                            <div class="anim-settings-panel hidden">
+                                <label class="anim-checkbox-label">
+                                    <input type="checkbox" class="anim-toggle">
+                                    <span>Animate Sprite Sheet</span>
+                                </label>
+                                <div class="anim-inputs-row hidden">
+                                    <div class="anim-input-group">
+                                        <label>Frames</label>
+                                        <input type="number" class="anim-frames" value="4" min="1" max="100">
+                                    </div>
+                                    <div class="anim-input-group">
+                                        <label>FPS</label>
+                                        <input type="number" class="anim-fps" value="8" min="1" max="60">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Asset Card 2: Goomba (Enemy) -->
+                    <div class="asset-card" data-asset="goomba">
+                        <div class="card-preview-area">
+                            <div class="color-swatch" style="background-color: #a4b0be;"></div>
+                            <img class="img-preview hidden" alt="Goomba Preview">
+                        </div>
+                        <div class="card-info">
+                            <div class="card-header-row">
+                                <span class="asset-name">Goomba (Enemy)</span>
+                                <span class="badge badge-placeholder">Placeholder</span>
+                            </div>
+                            <p class="asset-description"><span class="rec-res">Recommended: 32x32 px</span></p>
+                            <div class="file-input-wrapper">
+                                <label class="btn-upload" for="input-goomba">Choose Image</label>
+                                <input type="file" id="input-goomba" accept="image/*" class="file-input">
+                                <button class="btn-reset hidden" title="Reset to default">Reset</button>
+                            </div>
+                            
+                            <!-- Sprite Sheet Animation Settings -->
+                            <div class="anim-settings-panel hidden">
+                                <label class="anim-checkbox-label">
+                                    <input type="checkbox" class="anim-toggle">
+                                    <span>Animate Sprite Sheet</span>
+                                </label>
+                                <div class="anim-inputs-row hidden">
+                                    <div class="anim-input-group">
+                                        <label>Frames</label>
+                                        <input type="number" class="anim-frames" value="2" min="1" max="100">
+                                    </div>
+                                    <div class="anim-input-group">
+                                        <label>FPS</label>
+                                        <input type="number" class="anim-fps" value="6" min="1" max="60">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Asset Card 3: Ground Block -->
+                    <div class="asset-card" data-asset="ground">
+                        <div class="card-preview-area">
+                            <div class="color-swatch" style="background-color: #c56cf0;"></div>
+                            <img class="img-preview hidden" alt="Ground Preview">
+                        </div>
+                        <div class="card-info">
+                            <div class="card-header-row">
+                                <span class="asset-name">Ground Block</span>
+                                <span class="badge badge-placeholder">Placeholder</span>
+                            </div>
+                            <p class="asset-description"><span class="rec-res">Recommended: 40x40 px</span></p>
+                            <div class="file-input-wrapper">
+                                <label class="btn-upload" for="input-ground">Choose Image</label>
+                                <input type="file" id="input-ground" accept="image/*" class="file-input">
+                                <button class="btn-reset hidden" title="Reset to default">Reset</button>
+                            </div>
+                            
+                            <!-- Sprite Sheet Animation Settings -->
+                            <div class="anim-settings-panel hidden">
+                                <label class="anim-checkbox-label">
+                                    <input type="checkbox" class="anim-toggle">
+                                    <span>Animate Sprite Sheet</span>
+                                </label>
+                                <div class="anim-inputs-row hidden">
+                                    <div class="anim-input-group">
+                                        <label>Frames</label>
+                                        <input type="number" class="anim-frames" value="3" min="1" max="100">
+                                    </div>
+                                    <div class="anim-input-group">
+                                        <label>FPS</label>
+                                        <input type="number" class="anim-fps" value="6" min="1" max="60">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Asset Card 4: Brick Block -->
+                    <div class="asset-card" data-asset="brick">
+                        <div class="card-preview-area">
+                            <div class="color-swatch" style="background-color: #ff9f43;"></div>
+                            <img class="img-preview hidden" alt="Brick Preview">
+                        </div>
+                        <div class="card-info">
+                            <div class="card-header-row">
+                                <span class="asset-name">Brick Block</span>
+                                <span class="badge badge-placeholder">Placeholder</span>
+                            </div>
+                            <p class="asset-description"><span class="rec-res">Recommended: 40x40 px</span></p>
+                            <div class="file-input-wrapper">
+                                <label class="btn-upload" for="input-brick">Choose Image</label>
+                                <input type="file" id="input-brick" accept="image/*" class="file-input">
+                                <button class="btn-reset hidden" title="Reset to default">Reset</button>
+                            </div>
+                            
+                            <!-- Sprite Sheet Animation Settings -->
+                            <div class="anim-settings-panel hidden">
+                                <label class="anim-checkbox-label">
+                                    <input type="checkbox" class="anim-toggle">
+                                    <span>Animate Sprite Sheet</span>
+                                </label>
+                                <div class="anim-inputs-row hidden">
+                                    <div class="anim-input-group">
+                                        <label>Frames</label>
+                                        <input type="number" class="anim-frames" value="3" min="1" max="100">
+                                    </div>
+                                    <div class="anim-input-group">
+                                        <label>FPS</label>
+                                        <input type="number" class="anim-fps" value="6" min="1" max="60">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Asset Card 5: Question Block -->
+                    <div class="asset-card" data-asset="question">
+                        <div class="card-preview-area">
+                            <div class="color-swatch" style="background-color: #ffd2df;"></div>
+                            <img class="img-preview hidden" alt="Question Block Preview">
+                        </div>
+                        <div class="card-info">
+                            <div class="card-header-row">
+                                <span class="asset-name">Question Block (Active)</span>
+                                <span class="badge badge-placeholder">Placeholder</span>
+                            </div>
+                            <p class="asset-description"><span class="rec-res">Recommended: 40x40 px</span></p>
+                            <div class="file-input-wrapper">
+                                <label class="btn-upload" for="input-question">Choose Image</label>
+                                <input type="file" id="input-question" accept="image/*" class="file-input">
+                                <button class="btn-reset hidden" title="Reset to default">Reset</button>
+                            </div>
+                            
+                            <!-- Sprite Sheet Animation Settings -->
+                            <div class="anim-settings-panel hidden">
+                                <label class="anim-checkbox-label">
+                                    <input type="checkbox" class="anim-toggle">
+                                    <span>Animate Sprite Sheet</span>
+                                </label>
+                                <div class="anim-inputs-row hidden">
+                                    <div class="anim-input-group">
+                                        <label>Frames</label>
+                                        <input type="number" class="anim-frames" value="4" min="1" max="100">
+                                    </div>
+                                    <div class="anim-input-group">
+                                        <label>FPS</label>
+                                        <input type="number" class="anim-fps" value="8" min="1" max="60">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Asset Card 6: Question Block (Used) -->
+                    <div class="asset-card" data-asset="question_used">
+                        <div class="card-preview-area">
+                            <div class="color-swatch" style="background-color: #54a0ff;"></div>
+                            <img class="img-preview hidden" alt="Used Block Preview">
+                        </div>
+                        <div class="card-info">
+                            <div class="card-header-row">
+                                <span class="asset-name">Question Block (Used)</span>
+                                <span class="badge badge-placeholder">Placeholder</span>
+                            </div>
+                            <p class="asset-description"><span class="rec-res">Recommended: 40x40 px</span></p>
+                            <div class="file-input-wrapper">
+                                <label class="btn-upload" for="input-question_used">Choose Image</label>
+                                <input type="file" id="input-question_used" accept="image/*" class="file-input">
+                                <button class="btn-reset hidden" title="Reset to default">Reset</button>
+                            </div>
+                            
+                            <!-- Sprite Sheet Animation Settings -->
+                            <div class="anim-settings-panel hidden">
+                                <label class="anim-checkbox-label">
+                                    <input type="checkbox" class="anim-toggle">
+                                    <span>Animate Sprite Sheet</span>
+                                </label>
+                                <div class="anim-inputs-row hidden">
+                                    <div class="anim-input-group">
+                                        <label>Frames</label>
+                                        <input type="number" class="anim-frames" value="1" min="1" max="100">
+                                    </div>
+                                    <div class="anim-input-group">
+                                        <label>FPS</label>
+                                        <input type="number" class="anim-fps" value="1" min="1" max="60">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Asset Card 7: Hill / Mountain -->
+                    <div class="asset-card" data-asset="hill">
+                        <div class="card-preview-area">
+                            <div class="color-swatch" style="background-color: #10ac84;"></div>
+                            <img class="img-preview hidden" alt="Hill Preview">
+                        </div>
+                        <div class="card-info">
+                            <div class="card-header-row">
+                                <span class="asset-name">Hill / Mountain</span>
+                                <span class="badge badge-placeholder">Placeholder</span>
+                            </div>
+                            <p class="asset-description"><span class="rec-res">Recommended: 160x120 px</span></p>
+                            <div class="file-input-wrapper">
+                                <label class="btn-upload" for="input-hill">Choose Image</label>
+                                <input type="file" id="input-hill" accept="image/*" class="file-input">
+                                <button class="btn-reset hidden" title="Reset to default">Reset</button>
+                            </div>
+                            
+                            <!-- Sprite Sheet Animation Settings -->
+                            <div class="anim-settings-panel hidden">
+                                <label class="anim-checkbox-label">
+                                    <input type="checkbox" class="anim-toggle">
+                                    <span>Animate Sprite Sheet</span>
+                                </label>
+                                <div class="anim-inputs-row hidden">
+                                    <div class="anim-input-group">
+                                        <label>Frames</label>
+                                        <input type="number" class="anim-frames" value="1" min="1" max="100">
+                                    </div>
+                                    <div class="anim-input-group">
+                                        <label>FPS</label>
+                                        <input type="number" class="anim-fps" value="1" min="1" max="60">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Asset Card 8: Bush -->
+                    <div class="asset-card" data-asset="bush">
+                        <div class="card-preview-area">
+                            <div class="color-swatch" style="background-color: #1dd1a1;"></div>
+                            <img class="img-preview hidden" alt="Bush Preview">
+                        </div>
+                        <div class="card-info">
+                            <div class="card-header-row">
+                                <span class="asset-name">Bush</span>
+                                <span class="badge badge-placeholder">Placeholder</span>
+                            </div>
+                            <p class="asset-description"><span class="rec-res">Recommended: 96x24 px</span></p>
+                            <div class="file-input-wrapper">
+                                <label class="btn-upload" for="input-bush">Choose Image</label>
+                                <input type="file" id="input-bush" accept="image/*" class="file-input">
+                                <button class="btn-reset hidden" title="Reset to default">Reset</button>
+                            </div>
+                            
+                            <!-- Sprite Sheet Animation Settings -->
+                            <div class="anim-settings-panel hidden">
+                                <label class="anim-checkbox-label">
+                                    <input type="checkbox" class="anim-toggle">
+                                    <span>Animate Sprite Sheet</span>
+                                </label>
+                                <div class="anim-inputs-row hidden">
+                                    <div class="anim-input-group">
+                                        <label>Frames</label>
+                                        <input type="number" class="anim-frames" value="1" min="1" max="100">
+                                    </div>
+                                    <div class="anim-input-group">
+                                        <label>FPS</label>
+                                        <input type="number" class="anim-fps" value="1" min="1" max="60">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Asset Card 9: Cloud -->
+                    <div class="asset-card" data-asset="cloud">
+                        <div class="card-preview-area">
+                            <div class="color-swatch" style="background-color: #ffffff; border: 1px solid #ddd;"></div>
+                            <img class="img-preview hidden" alt="Cloud Preview">
+                        </div>
+                        <div class="card-info">
+                            <div class="card-header-row">
+                                <span class="asset-name">Cloud</span>
+                                <span class="badge badge-placeholder">Placeholder</span>
+                            </div>
+                            <p class="asset-description"><span class="rec-res">Recommended: 100x45 px</span></p>
+                            <div class="file-input-wrapper">
+                                <label class="btn-upload" for="input-cloud">Choose Image</label>
+                                <input type="file" id="input-cloud" accept="image/*" class="file-input">
+                                <button class="btn-reset hidden" title="Reset to default">Reset</button>
+                            </div>
+                            
+                            <!-- Sprite Sheet Animation Settings -->
+                            <div class="anim-settings-panel hidden">
+                                <label class="anim-checkbox-label">
+                                    <input type="checkbox" class="anim-toggle">
+                                    <span>Animate Sprite Sheet</span>
+                                </label>
+                                <div class="anim-inputs-row hidden">
+                                    <div class="anim-input-group">
+                                        <label>Frames</label>
+                                        <input type="number" class="anim-frames" value="1" min="1" max="100">
+                                    </div>
+                                    <div class="anim-input-group">
+                                        <label>FPS</label>
+                                        <input type="number" class="anim-fps" value="1" min="1" max="60">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Asset Card 10: Title Sign -->
+                    <div class="asset-card" data-asset="title_sign">
+                        <div class="card-preview-area">
+                            <div class="color-swatch" style="background-color: #ff6b6b;"></div>
+                            <img class="img-preview hidden" alt="Title Sign Preview">
+                        </div>
+                        <div class="card-info">
+                            <div class="card-header-row">
+                                <span class="asset-name">Title Sign</span>
+                                <span class="badge badge-placeholder">Placeholder</span>
+                            </div>
+                            <p class="asset-description"><span class="rec-res">Recommended: 310x130 px</span></p>
+                            <div class="file-input-wrapper">
+                                <label class="btn-upload" for="input-title_sign">Choose Image</label>
+                                <input type="file" id="input-title_sign" accept="image/*" class="file-input">
+                                <button class="btn-reset hidden" title="Reset to default">Reset</button>
+                            </div>
+                            
+                            <!-- Sprite Sheet Animation Settings -->
+                            <div class="anim-settings-panel hidden">
+                                <label class="anim-checkbox-label">
+                                    <input type="checkbox" class="anim-toggle">
+                                    <span>Animate Sprite Sheet</span>
+                                </label>
+                                <div class="anim-inputs-row hidden">
+                                    <div class="anim-input-group">
+                                        <label>Frames</label>
+                                        <input type="number" class="anim-frames" value="1" min="1" max="100">
+                                    </div>
+                                    <div class="anim-input-group">
+                                        <label>FPS</label>
+                                        <input type="number" class="anim-fps" value="1" min="1" max="60">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="app-footer">
+            <p>Made for prototyping retro-game asset injections in real-time. Files are processed entirely on your local machine.</p>
+            <p class="disclaimer-text">Disclaimer: Experimental AI content. Proceed with verification.</p>
+        </footer>
+    </div>
+
+    <!-- Script loading -->
+    <script src="app.js?v=1.8"></script>
+</body>
+</html>
