@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Word Predictor</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>🤖 AI Brain Simulator</h1>
+        
+        <div class="controls">
+            <select id="sentence-select">
+                </select>
+            
+            <div class="slider-container">
+                <label>Brain Mode:</label>
+                <span>Smart 🤓</span>
+                <input type="range" id="temperature-slider" min="1" max="10" value="1">
+                <span>Silly 🤪</span>
+            </div>
+        </div>
+
+        <div class="sentence-display" id="sentence-display">
+            </div>
+
+        <div class="actions">
+            <button id="fill-btn" class="primary-btn">Predict Next Word!</button>
+            <button id="next-btn" class="secondary-btn">Next Sentence</button>
+        </div>
+
+        <h2>Vocabulary Database</h2>
+        <div class="word-grid" id="word-grid">
+            </div>
+
+        <div class="history-container">
+            <h2>📜 Guessed Words History</h2>
+            <ul id="history-list" class="history-list">
+                </ul>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
