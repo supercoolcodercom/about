@@ -31,6 +31,19 @@
             background-size: 20px 20px, 40px 40px, 40px 40px;
         }
 
+        /* Dynamic SVG Tool Cursors for Canvas Area */
+        .cursor-tool-router {
+            cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'><rect x='4' y='10' width='24' height='16' rx='3' fill='%230f172a' stroke='%233b82f6' stroke-width='2'/><circle cx='10' cy='18' r='2' fill='%2360a5fa'/><circle cx='16' cy='18' r='2' fill='%2360a5fa'/><circle cx='22' cy='18' r='2' fill='%2360a5fa'/><line x1='10' y1='10' x2='8' y2='4' stroke='%233b82f6' stroke-width='2' stroke-linecap='round'/><line x1='22' y1='10' x2='24' y2='4' stroke='%233b82f6' stroke-width='2' stroke-linecap='round'/></svg>") 16 16, crosshair !important;
+        }
+
+        .cursor-tool-cable {
+            cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'><path d='M8 24 L14 18 M14 18 L18 22 M14 18 L22 10' stroke='%2310b981' stroke-width='3' stroke-linecap='round'/><rect x='20' y='6' width='8' height='8' rx='2' fill='%2310b981' transform='rotate(45 24 10)'/><line x1='4' y1='28' x2='8' y2='24' stroke='%23059669' stroke-width='4' stroke-linecap='round'/></svg>") 8 24, crosshair !important;
+        }
+
+        .cursor-tool-delete {
+            cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'><path d='M8 6 L24 6 M12 6 V4 A2 2 0 0 1 14 2 H18 A2 2 0 0 1 20 4 V6 M10 6 L11 26 A2 2 0 0 0 13 28 H19 A2 2 0 0 0 21 26 L22 6' stroke='%23ef4444' stroke-width='2' fill='none' stroke-linecap='round' stroke-linejoin='round'/><line x1='13' y1='11' x2='13' y2='21' stroke='%23ef4444' stroke-width='2' stroke-linecap='round'/><line x1='19' y1='11' x2='19' y2='21' stroke='%23ef4444' stroke-width='2' stroke-linecap='round'/></svg>") 16 16, pointer !important;
+        }
+
         @keyframes pulse-border {
             0%, 100% { border-color: rgba(239, 68, 68, 0.8); }
             50% { border-color: rgba(239, 68, 68, 0.2); }
@@ -217,7 +230,7 @@
 
         <!-- Canvas Game Grid Container -->
         <div class="flex-1 relative h-full w-full bg-slate-950 overflow-hidden flex items-center justify-center">
-            <canvas id="gameCanvas" class="w-full h-full block cursor-crosshair"></canvas>
+            <canvas id="gameCanvas" class="w-full h-full block cursor-tool-router"></canvas>
             
             <!-- Anchored Bottom Interactive Tutorial Overlay -->
             <div id="tutorialOverlay" class="hidden absolute bottom-6 left-1/2 -translate-x-1/2 z-30 transition-all duration-300 w-full max-w-md px-4 pointer-events-none">
@@ -889,12 +902,18 @@
                     btn.classList.add('bg-slate-800/40', 'border-slate-700/60');
                 });
 
+                // Clear previous tool cursors from canvas
+                canvas.classList.remove('cursor-tool-router', 'cursor-tool-cable', 'cursor-tool-delete', 'cursor-crosshair');
+
                 if (tool === 'router') {
                     toolRouterBtn.classList.add('bg-blue-950/60', 'border-blue-500/50');
+                    canvas.classList.add('cursor-tool-router');
                 } else if (tool === 'cable') {
                     toolCableBtn.classList.add('bg-blue-950/60', 'border-blue-500/50');
+                    canvas.classList.add('cursor-tool-cable');
                 } else if (tool === 'delete') {
                     toolDeleteBtn.classList.add('bg-blue-950/60', 'border-blue-500/50');
+                    canvas.classList.add('cursor-tool-delete');
                 }
             }
 
