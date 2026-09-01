@@ -106,9 +106,9 @@
                 <div>
                     <div class="text-[10px] text-slate-400 uppercase tracking-wider flex justify-between gap-2">
                         <span>Time Left</span>
-                        <span id="limitBadge" class="text-indigo-400 font-semibold">(Limit: 1m)</span>
+                        <span id="limitBadge" class="text-indigo-400 font-semibold">(Limit: 15m)</span>
                     </div>
-                    <div id="timerText" class="font-bold text-indigo-300 text-base">60s</div>
+                    <div id="timerText" class="font-bold text-indigo-300 text-base">15m 00s</div>
                 </div>
             </div>
         </div>
@@ -251,32 +251,36 @@
                     </div>
 
                     <div class="space-y-3 text-xs text-slate-300 leading-relaxed max-h-[60vh] overflow-y-auto pr-1">
-                        <div class="p-3 bg-slate-950/50 rounded-xl border border-slate-800/80">
-                            <p class="font-bold text-blue-400 mb-1 flex items-center"><i class="fa-solid fa-server mr-2"></i> 1. Place Routers</p>
-                            Select <b>Place Router</b> tool and click on empty canvas spots to deploy router nodes.
+                        <!-- Restored 3 Introductory Sentences -->
+                        <div class="p-3 bg-blue-950/40 rounded-xl border border-blue-500/30 text-blue-200 space-y-1.5">
+                            <p>• Packet Panic simulates a real-world computer network where data packets travel from source Senders to matching destination Receivers.</p>
+                            <p>• As the network architect, your job is to build efficient routes using Routers and Cable Lines before network queues overflow.</p>
+                            <p>• Beware of network stress—cable severances and router overloads will delay packets and test your network redundancy under pressure!</p>
                         </div>
 
-                        <div class="p-3 bg-slate-950/50 rounded-xl border border-slate-800/80">
-                            <p class="font-bold text-emerald-400 mb-1 flex items-center"><i class="fa-solid fa-plug mr-2"></i> 2. Connect Cables</p>
-                            Select <b>Draw Cable</b> tool, click and drag a cable from Senders (Left) to Routers, and from Routers to Receivers (Right).
+                        <div class="space-y-2 pt-1">
+                            <p class="font-bold text-slate-200 flex items-center"><i class="fa-solid fa-server text-blue-400 mr-2"></i> 1. Placing Routers</p>
+                            <p class="text-slate-400 pl-5">Select <b>Place Router</b> from the toolbox and click anywhere on the grid canvas to position intermediate routing nodes.</p>
+
+                            <p class="font-bold text-slate-200 flex items-center"><i class="fa-solid fa-plug text-emerald-400 mr-2"></i> 2. Drawing Cables</p>
+                            <p class="text-slate-400 pl-5">Select <b>Draw Cable</b>, then click and drag between nodes to establish physical data connections.</p>
+
+                            <p class="font-bold text-slate-200 flex items-center"><i class="fa-solid fa-box text-amber-400 mr-2"></i> 3. Routing Packets</p>
+                            <p class="text-slate-400 pl-5">Color-coded packets automatically spawn at Senders. Routers automatically forward packets toward matching Receivers along connected paths.</p>
                         </div>
 
-                        <div class="p-3 bg-slate-950/50 rounded-xl border border-slate-800/80">
-                            <p class="font-bold text-amber-400 mb-1 flex items-center"><i class="fa-solid fa-route mr-2"></i> 3. Match Colors & Queue Caps</p>
-                            Packets seek receivers of matching color. Routers can hold up to <b>3 packets</b> at once. Holding over 3 causes a temporary overload freeze!
-                        </div>
-
-                        <div class="p-3 bg-slate-950/50 rounded-xl border border-slate-800/80">
-                            <p class="font-bold text-indigo-400 mb-1 flex items-center"><i class="fa-solid fa-stopwatch mr-2"></i> 4. Dynamic Adaptive Timer System</p>
-                            • Initial time limit is <b>1 minute (60s)</b>.<br>
-                            • If you <b>fail</b>, you gain <b>+1 minute extra</b> on your next attempt to help you win.<br>
-                            • If you <b>win</b>, time limit decreases by <b>1 minute</b> for the next round (down to min 1 min floor).
+                        <div class="p-3 bg-slate-950/50 rounded-xl border border-slate-800/80 mt-2">
+                            <p class="font-bold text-indigo-400 mb-1 flex items-center"><i class="fa-solid fa-stopwatch mr-2"></i> 4. Dynamic Timer & Challenge Progression</p>
+                            • First-time players get a relaxed <b>15 minutes</b> limit to get comfortable with routing.<br>
+                            • Complete the 15-minute introductory mode to unlock the <b>1 Minute Challenge</b>!<br>
+                            • If you fail a challenge, gain <b>+1 minute extra</b> on your next try.<br>
+                            • Succeeding reduces time towards the ultimate <b>1 Minute (60s)</b> speed-run floor.
                         </div>
                     </div>
 
                     <button id="startGameBtn" class="w-full py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold rounded-xl shadow-lg shadow-blue-600/30 transition text-sm flex items-center justify-center space-x-2">
                         <i class="fa-solid fa-play"></i>
-                        <span>Start Playing</span>
+                        <span>Start Playing (15m Introduction)</span>
                     </button>
                 </div>
             </div>
@@ -372,8 +376,9 @@
             let packetsDelivered = 0;
             const targetPackets = 20;
             
-            // Time Limit in seconds (Default: 60s / 1 minute)
-            let currentLevelLimit = 60; 
+            // Time Limit in seconds (Default: 900s / 15 minutes for 1st play)
+            let isFirstPlay = true;
+            let currentLevelLimit = 900; 
             let timeRemaining = currentLevelLimit;
             let timerInterval = null;
 
@@ -1022,7 +1027,7 @@
                 successBanner.classList.add('hidden');
                 modalTitle.textContent = "Tutorial Completed!";
                 modalSubtitle.textContent = "You have learned how to place routers and route network cables. Ready for live network traffic?";
-                timeChangeNotice.innerHTML = `<i class="fa-solid fa-play text-emerald-400 mr-1"></i> Starting live simulation with a <b>${formatMinutes(currentLevelLimit)}</b> timer.`;
+                timeChangeNotice.innerHTML = `<i class="fa-solid fa-play text-emerald-400 mr-1"></i> Starting live simulation with a relaxed <b>${formatMinutes(currentLevelLimit)}</b> timer for your first run.`;
                 modalIcon.className = "w-16 h-16 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center mx-auto border border-indigo-500/40 text-2xl";
                 modalIcon.innerHTML = '<i class="fa-solid fa-circle-check"></i>';
                 modalActionBtn.textContent = "Start Main Game";
@@ -1043,11 +1048,13 @@
             function formatMinutes(seconds) {
                 const mins = Math.floor(seconds / 60);
                 const secs = seconds % 60;
-                return mins > 0 ? `${mins}m ${secs > 0 ? secs + 's' : ''}` : `${secs}s`;
+                if (mins > 0 && secs > 0) return `${mins}m ${secs}s`;
+                if (mins > 0) return `${mins}m`;
+                return `${secs}s`;
             }
 
             function updateTimerDisplay() {
-                timerTextEl.textContent = `${timeRemaining}s`;
+                timerTextEl.textContent = formatMinutes(timeRemaining);
                 limitBadgeEl.textContent = `(Limit: ${formatMinutes(currentLevelLimit)})`;
             }
 
@@ -1084,43 +1091,62 @@
 
                 modalOverlay.classList.remove('hidden');
                 document.getElementById('finalScore').textContent = `${packetsDelivered} / ${targetPackets}`;
-                document.getElementById('finalTime').textContent = `${timeRemaining}s`;
+                document.getElementById('finalTime').textContent = formatMinutes(timeRemaining);
                 document.getElementById('finalStress').textContent = stressTextEl.textContent;
 
                 if (isVictory) {
-                    // Check if completed within 1 minute (60s)
-                    if (currentLevelLimit <= 60 || (currentLevelLimit - timeRemaining <= 60)) {
+                    if (isFirstPlay) {
+                        // First play completed! Unlock 1 Minute Challenge
+                        isFirstPlay = false;
+                        currentLevelLimit = 60; // Set to 1 Minute Challenge
+                        
                         successBanner.classList.remove('hidden');
+                        successBanner.textContent = "🎉 FIRST RUN COMPLETE! 1 MINUTE CHALLENGE UNLOCKED!";
+                        timeChangeNotice.innerHTML = `<i class="fa-solid fa-fire text-amber-400 mr-1"></i> Excellent job! You've mastered the basics. Now try the <b>1 Minute Challenge (60s)</b>!`;
+                        
+                        modalTitle.textContent = "Introductory Run Completed!";
+                        modalSubtitle.textContent = "You routed all packets! Ready for the fast-paced 1 Minute Challenge?";
                     } else {
-                        successBanner.classList.add('hidden');
+                        // Subsequent victories: Check if completed within 1 minute
+                        if (currentLevelLimit <= 60 || (currentLevelLimit - timeRemaining <= 60)) {
+                            successBanner.classList.remove('hidden');
+                            successBanner.textContent = "🎉 NETWORK OPTIMIZED! COMPLETED IN < 1 MIN!";
+                        } else {
+                            successBanner.classList.add('hidden');
+                        }
+
+                        // Victory adjustments: Decrease time limit by 1 minute (60s) down to min floor of 60s
+                        if (currentLevelLimit > 60) {
+                            currentLevelLimit = Math.max(60, currentLevelLimit - 60);
+                            timeChangeNotice.innerHTML = `<i class="fa-solid fa-arrow-trend-down text-emerald-400 mr-1"></i> Great speed! Time limit reduced by 1 minute for next round. <b>Next Limit: ${formatMinutes(currentLevelLimit)}</b>`;
+                        } else {
+                            timeChangeNotice.innerHTML = `<i class="fa-solid fa-fire text-amber-400 mr-1"></i> Master Rank Achieved! Playing at minimum challenge floor of <b>1 Minute (60s)</b>.`;
+                        }
+
+                        modalTitle.textContent = "Network Restored!";
+                        modalSubtitle.textContent = "Outstanding routing! You delivered all packets smoothly under pressure.";
                     }
 
-                    // Victory adjustments: Decrease time limit by 1 minute (60s) down to min floor of 60s
-                    if (currentLevelLimit > 60) {
-                        currentLevelLimit = Math.max(60, currentLevelLimit - 60);
-                        timeChangeNotice.innerHTML = `<i class="fa-solid fa-arrow-trend-down text-emerald-400 mr-1"></i> Great job! Time limit reduced by 1 minute for next round. <b>Next Limit: ${formatMinutes(currentLevelLimit)}</b>`;
-                    } else {
-                        timeChangeNotice.innerHTML = `<i class="fa-solid fa-fire text-amber-400 mr-1"></i> Master Rank Achieved! Playing at minimum floor of <b>1 Minute (60s)</b>.`;
-                    }
-
-                    modalTitle.textContent = "Network Restored!";
-                    modalSubtitle.textContent = "Outstanding routing! You delivered all packets smoothly under pressure.";
                     modalIcon.className = "w-16 h-16 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto border border-emerald-500/40 text-2xl";
                     modalIcon.innerHTML = '<i class="fa-solid fa-trophy"></i>';
-                    modalActionBtn.textContent = "Play Next Round";
+                    modalActionBtn.textContent = isFirstPlay ? "Start 1 Minute Challenge" : "Play Next Round";
                 } else {
                     // Failure: Hide success banner
                     successBanner.classList.add('hidden');
 
-                    // Failure adjustments: Increase time limit by +1 minute (60s)
-                    currentLevelLimit += 60;
-                    timeChangeNotice.innerHTML = `<i class="fa-solid fa-hourglass-half text-amber-400 mr-1"></i> Time increased by <b>+1 minute</b> for your next attempt! <b>(New Limit: ${formatMinutes(currentLevelLimit)})</b>`;
+                    if (isFirstPlay) {
+                        timeChangeNotice.innerHTML = `<i class="fa-solid fa-hourglass-half text-amber-400 mr-1"></i> You ran out of time on the introductory mode. Try again with the <b>15 minutes limit</b>!`;
+                    } else {
+                        // Failure adjustments: Increase time limit by +1 minute (60s)
+                        currentLevelLimit += 60;
+                        timeChangeNotice.innerHTML = `<i class="fa-solid fa-hourglass-half text-amber-400 mr-1"></i> Time increased by <b>+1 minute</b> for your next attempt! <b>(New Limit: ${formatMinutes(currentLevelLimit)})</b>`;
+                    }
 
                     modalTitle.textContent = "Network Crash!";
                     modalSubtitle.textContent = "Packet loss or timer expiration exceeded limits. Reroute faster next time!";
                     modalIcon.className = "w-16 h-16 rounded-full bg-rose-500/20 text-rose-400 flex items-center justify-center mx-auto border border-rose-500/40 text-2xl";
                     modalIcon.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i>';
-                    modalActionBtn.textContent = "Try Again (+1 Min Added)";
+                    modalActionBtn.textContent = "Try Again";
                 }
 
                 updateTimerDisplay();
