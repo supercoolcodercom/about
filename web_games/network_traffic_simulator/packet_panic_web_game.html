@@ -1,0 +1,1134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Packet Panic - Network Routing Game</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600;700&family=Inter:wght@400;600;700;800&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0b0f19;
+            color: #f3f4f6;
+            touch-action: manipulation;
+            user-select: none;
+        }
+
+        .code-font {
+            font-family: 'Fira Code', monospace;
+        }
+
+        /* Canvas background grid */
+        #gameCanvas {
+            background-color: #080c14;
+            background-image: 
+                radial-gradient(rgba(59, 130, 246, 0.1) 1px, transparent 1px),
+                linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+            background-size: 20px 20px, 40px 40px, 40px 40px;
+        }
+
+        @keyframes pulse-border {
+            0%, 100% { border-color: rgba(239, 68, 68, 0.8); }
+            50% { border-color: rgba(239, 68, 68, 0.2); }
+        }
+
+        .pulse-danger {
+            animation: pulse-border 1.5s infinite;
+        }
+
+        /* Success Banner Animation */
+        @keyframes banner-pop {
+            0% { transform: scale(0.8); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .pop-in {
+            animation: banner-pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        /* Tutorial Pointer Pulse Animation */
+        @keyframes pointer-bounce {
+            0%, 100% { transform: translateY(0) scale(1); }
+            50% { transform: translateY(-6px) scale(1.1); }
+        }
+
+        .tutorial-pointer {
+            animation: pointer-bounce 1s infinite ease-in-out;
+        }
+    </style>
+</head>
+<body class="h-screen w-screen overflow-hidden flex flex-col bg-slate-950 text-slate-100">
+
+    <!-- Header / HUD -->
+    <header class="h-16 border-b border-slate-800 bg-slate-900/80 backdrop-blur px-6 flex items-center justify-between z-10 shrink-0">
+        <div class="flex items-center space-x-3">
+            <div class="p-2 bg-blue-600/20 text-blue-400 border border-blue-500/30 rounded-lg">
+                <i class="fa-solid font-bold fa-network-wired text-xl"></i>
+            </div>
+            <div>
+                <h1 class="text-lg font-extrabold tracking-wider bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">PACKET PANIC</h1>
+                <p class="text-xs text-slate-400">Network Topology Simulator</p>
+            </div>
+        </div>
+
+        <!-- HUD Metrics -->
+        <div class="flex items-center space-x-6 code-font text-sm">
+            <!-- Delivered Packets -->
+            <div class="bg-slate-800/80 border border-slate-700/60 rounded-lg px-3 py-1.5 flex items-center space-x-3">
+                <i class="fa-solid fa-box-check text-emerald-400"></i>
+                <div>
+                    <div class="text-[10px] text-slate-400 uppercase tracking-wider">Packets</div>
+                    <div id="deliveredCounter" class="font-bold text-emerald-400 text-base">0 / 20</div>
+                </div>
+            </div>
+
+            <!-- Network Stress / Latency -->
+            <div class="bg-slate-800/80 border border-slate-700/60 rounded-lg px-3 py-1.5 flex items-center space-x-3 min-w-[160px]">
+                <i class="fa-solid fa-gauge-high text-amber-400"></i>
+                <div class="w-full">
+                    <div class="flex justify-between text-[10px] text-slate-400 uppercase tracking-wider">
+                        <span>Stress</span>
+                        <span id="stressText" class="text-emerald-400">0%</span>
+                    </div>
+                    <div class="w-full bg-slate-700 h-1.5 rounded-full mt-1 overflow-hidden">
+                        <div id="stressBar" class="bg-emerald-400 h-full w-0 transition-all duration-300"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Timer & Current Limit Badge -->
+            <div class="bg-slate-800/80 border border-slate-700/60 rounded-lg px-3 py-1.5 flex items-center space-x-3">
+                <i class="fa-regular fa-clock text-indigo-400"></i>
+                <div>
+                    <div class="text-[10px] text-slate-400 uppercase tracking-wider flex justify-between gap-2">
+                        <span>Time Left</span>
+                        <span id="limitBadge" class="text-indigo-400 font-semibold">(Limit: 1m)</span>
+                    </div>
+                    <div id="timerText" class="font-bold text-indigo-300 text-base">60s</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Controls -->
+        <div class="flex items-center space-x-3">
+            <button id="restartBtn" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-lg text-xs transition flex items-center space-x-2 shadow-lg shadow-indigo-600/20">
+                <i class="fa-solid fa-rotate-right"></i>
+                <span>Restart Level</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Play Area -->
+    <div class="flex-1 flex overflow-hidden relative">
+        
+        <!-- Left Sidebar Tools -->
+        <div class="w-64 border-r border-slate-800 bg-slate-900/50 p-4 flex flex-col justify-between shrink-0 z-10 overflow-y-auto">
+            <div class="space-y-5">
+                <!-- How to Play & Tutorial Buttons -->
+                <div class="space-y-2">
+                    <button id="tutorialBtn" class="w-full py-2.5 px-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold rounded-xl text-xs flex items-center justify-center space-x-2 shadow-lg shadow-indigo-600/20 transition">
+                        <i class="fa-solid fa-graduation-cap text-base"></i>
+                        <span>Interactive Tutorial</span>
+                    </button>
+                    <button id="howToPlayBtn" class="w-full py-2 px-3 bg-slate-800/80 hover:bg-slate-700/80 text-slate-300 font-semibold rounded-xl text-xs flex items-center justify-center space-x-2 border border-slate-700/60 transition">
+                        <i class="fa-solid fa-circle-question text-sm text-cyan-400"></i>
+                        <span>How to Play Guide</span>
+                    </button>
+                </div>
+
+                <hr class="border-slate-800" />
+
+                <div>
+                    <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3">Toolbox</h3>
+                    <div class="space-y-2">
+                        <!-- Add Router Tool -->
+                        <div id="toolRouter" class="tool-btn active p-3 bg-blue-950/60 border border-blue-500/50 rounded-xl flex items-center justify-between cursor-pointer hover:bg-blue-900/40 transition">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-8 h-8 rounded-lg bg-blue-600/20 text-blue-400 flex items-center justify-center border border-blue-500/30">
+                                    <i class="fa-solid fa-server"></i>
+                                </div>
+                                <div>
+                                    <div class="text-xs font-bold text-slate-200">Place Router</div>
+                                    <div class="text-[10px] text-slate-400">Click canvas grid</div>
+                                </div>
+                            </div>
+                            <span id="routerPool" class="code-font text-xs font-bold text-blue-400 px-2 py-0.5 bg-blue-900/50 rounded">6 Left</span>
+                        </div>
+
+                        <!-- Connect Cable Tool -->
+                        <div id="toolCable" class="tool-btn p-3 bg-slate-800/40 border border-slate-700/60 rounded-xl flex items-center justify-between cursor-pointer hover:bg-slate-800/80 transition">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-8 h-8 rounded-lg bg-emerald-600/20 text-emerald-400 flex items-center justify-center border border-emerald-500/30">
+                                    <i class="fa-solid fa-plug"></i>
+                                </div>
+                                <div>
+                                    <div class="text-xs font-bold text-slate-200">Draw Cable</div>
+                                    <div class="text-[10px] text-slate-400">Drag to connect</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Delete Tool -->
+                        <div id="toolDelete" class="tool-btn p-3 bg-slate-800/40 border border-slate-700/60 rounded-xl flex items-center justify-between cursor-pointer hover:bg-slate-800/80 transition">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-8 h-8 rounded-lg bg-rose-600/20 text-rose-400 flex items-center justify-center border border-rose-500/30">
+                                    <i class="fa-solid fa-trash-can"></i>
+                                </div>
+                                <div>
+                                    <div class="text-xs font-bold text-slate-200">Remove</div>
+                                    <div class="text-[10px] text-slate-400">Click node / cable</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <hr class="border-slate-800" />
+
+                <!-- Network Hazards & Stress Controls -->
+                <div>
+                    <h3 class="text-xs font-semibold uppercase tracking-wider text-amber-400/90 mb-3 flex items-center space-x-2">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                        <span>Inject Stress</span>
+                    </h3>
+                    <div class="space-y-2">
+                        <button id="triggerCableCutBtn" class="w-full p-2.5 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 rounded-lg text-xs font-semibold flex items-center justify-start space-x-3 transition">
+                            <i class="fa-solid fa-scissors text-amber-400"></i>
+                            <span>Cut Random Cable</span>
+                        </button>
+                        <button id="triggerOverloadBtn" class="w-full p-2.5 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-300 rounded-lg text-xs font-semibold flex items-center justify-start space-x-3 transition">
+                            <i class="fa-solid fa-bolt-lightning text-rose-400"></i>
+                            <span>Overload Router</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Objective Box -->
+            <div class="mt-4 p-3 bg-slate-800/40 border border-slate-800 rounded-xl text-slate-400 text-xs leading-relaxed">
+                <p class="font-semibold text-slate-300 mb-1"><i class="fa-regular fa-lightbulb text-amber-400 mr-1"></i> Objective</p>
+                Route 20 packets to matching color Receivers before timer expires!
+            </div>
+        </div>
+
+        <!-- Canvas Game Grid Container -->
+        <div class="flex-1 relative h-full w-full bg-slate-950 overflow-hidden flex items-center justify-center">
+            <canvas id="gameCanvas" class="w-full h-full block cursor-crosshair"></canvas>
+            
+            <!-- Anchored Bottom Interactive Tutorial Overlay -->
+            <div id="tutorialOverlay" class="hidden absolute bottom-6 left-1/2 -translate-x-1/2 z-30 transition-all duration-300 w-full max-w-md px-4 pointer-events-none">
+                <div id="tutorialStepCard" class="pointer-events-auto bg-slate-900/95 border-2 border-indigo-500 p-4 rounded-2xl shadow-2xl text-xs text-slate-200 space-y-3 backdrop-blur border-indigo-500/80">
+                    <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+                        <span id="tutorialStepBadge" class="bg-indigo-600/30 text-indigo-300 border border-indigo-500/40 px-2.5 py-0.5 rounded-full font-bold text-[10px] uppercase tracking-wider">Step 1 of 5</span>
+                        <button id="skipTutorialBtn" class="text-slate-400 hover:text-slate-200 text-[10px] underline">Skip Tutorial</button>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                        <div id="tutorialPointerArrow" class="tutorial-pointer text-indigo-400 text-2xl flex items-center justify-center shrink-0">
+                            <i class="fa-solid fa-hand-point-right"></i>
+                        </div>
+                        <p id="tutorialStepInstruction" class="font-medium leading-relaxed text-slate-100 flex-1">
+                            Click "Place Router" button on the left sidebar.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Instructions / How To Play Modal Overlay -->
+            <div id="instructionsOverlay" class="absolute inset-0 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-6 z-20 transition-opacity duration-300">
+                <div class="max-w-lg w-full bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl text-left space-y-4">
+                    <div class="flex items-center space-x-3 border-b border-slate-800 pb-3">
+                        <div class="w-10 h-10 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center border border-blue-500/40 text-lg">
+                            <i class="fa-solid fa-book-open"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-lg font-bold text-slate-100">How to Play Packet Panic</h2>
+                            <p class="text-xs text-slate-400">Master packet routing and survive network stress!</p>
+                        </div>
+                    </div>
+
+                    <div class="space-y-3 text-xs text-slate-300 leading-relaxed max-h-[60vh] overflow-y-auto pr-1">
+                        <div class="p-3 bg-slate-950/50 rounded-xl border border-slate-800/80">
+                            <p class="font-bold text-blue-400 mb-1 flex items-center"><i class="fa-solid fa-server mr-2"></i> 1. Place Routers</p>
+                            Select <b>Place Router</b> tool and click on empty canvas spots to deploy router nodes.
+                        </div>
+
+                        <div class="p-3 bg-slate-950/50 rounded-xl border border-slate-800/80">
+                            <p class="font-bold text-emerald-400 mb-1 flex items-center"><i class="fa-solid fa-plug mr-2"></i> 2. Connect Cables</p>
+                            Select <b>Draw Cable</b> tool, click and drag a cable from Senders (Left) to Routers, and from Routers to Receivers (Right).
+                        </div>
+
+                        <div class="p-3 bg-slate-950/50 rounded-xl border border-slate-800/80">
+                            <p class="font-bold text-amber-400 mb-1 flex items-center"><i class="fa-solid fa-route mr-2"></i> 3. Match Colors & Queue Caps</p>
+                            Packets seek receivers of matching color. Routers can hold up to <b>3 packets</b> at once. Holding over 3 causes a temporary overload freeze!
+                        </div>
+
+                        <div class="p-3 bg-slate-950/50 rounded-xl border border-slate-800/80">
+                            <p class="font-bold text-indigo-400 mb-1 flex items-center"><i class="fa-solid fa-stopwatch mr-2"></i> 4. Dynamic Adaptive Timer System</p>
+                            • Initial time limit is <b>1 minute (60s)</b>.<br>
+                            • If you <b>fail</b>, you gain <b>+1 minute extra</b> on your next attempt to help you win.<br>
+                            • If you <b>win</b>, time limit decreases by <b>1 minute</b> for the next round (down to min 1 min floor).
+                        </div>
+                    </div>
+
+                    <button id="startGameBtn" class="w-full py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold rounded-xl shadow-lg shadow-blue-600/30 transition text-sm flex items-center justify-center space-x-2">
+                        <i class="fa-solid fa-play"></i>
+                        <span>Start Playing</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Game Over / Victory Modal -->
+            <div id="modalOverlay" class="hidden absolute inset-0 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-6 z-30">
+                <div id="modalCard" class="max-w-md w-full bg-slate-900 border border-slate-800 rounded-2xl p-6 text-center space-y-5 shadow-2xl pop-in">
+                    
+                    <!-- Large Banner Badge for Success -->
+                    <div id="successBanner" class="hidden py-2 px-4 bg-emerald-500/20 border border-emerald-500/40 rounded-xl text-emerald-300 font-extrabold text-sm uppercase tracking-widest animate-pulse">
+                        🎉 NETWORK OPTIMIZED! COMPLETED IN &lt; 1 MIN!
+                    </div>
+
+                    <div id="modalIcon" class="w-16 h-16 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto border border-emerald-500/40 text-2xl">
+                        <i class="fa-solid fa-trophy"></i>
+                    </div>
+                    
+                    <div>
+                        <h2 id="modalTitle" class="text-2xl font-extrabold text-slate-100">Network Restored!</h2>
+                        <p id="modalSubtitle" class="text-xs text-slate-400 mt-1">All data packets successfully routed.</p>
+                    </div>
+
+                    <!-- Dynamic Time Limit Change Notice Box -->
+                    <div id="timeChangeNotice" class="p-3 bg-indigo-950/50 border border-indigo-500/30 rounded-xl text-xs text-indigo-200 font-medium">
+                        <!-- Filled by JS -->
+                    </div>
+                    
+                    <div class="bg-slate-950/60 p-4 rounded-xl border border-slate-800/80 text-left space-y-2 code-font text-xs">
+                        <div class="flex justify-between">
+                            <span class="text-slate-400">Packets Delivered:</span>
+                            <span id="finalScore" class="text-emerald-400 font-bold">20 / 20</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-slate-400">Peak Stress:</span>
+                            <span id="finalStress" class="text-amber-400 font-bold">35%</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-slate-400">Time Remaining:</span>
+                            <span id="finalTime" class="text-indigo-400 font-bold">24s</span>
+                        </div>
+                    </div>
+
+                    <button id="modalActionBtn" class="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl transition shadow-lg shadow-indigo-600/20 text-sm">
+                        Play Again
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        window.addEventListener('load', () => {
+            const canvas = document.getElementById('gameCanvas');
+            const ctx = canvas.getContext('2d');
+
+            // UI Elements
+            const deliveredCounterEl = document.getElementById('deliveredCounter');
+            const stressTextEl = document.getElementById('stressText');
+            const stressBarEl = document.getElementById('stressBar');
+            const timerTextEl = document.getElementById('timerText');
+            const limitBadgeEl = document.getElementById('limitBadge');
+            const routerPoolEl = document.getElementById('routerPool');
+            const instructionsOverlay = document.getElementById('instructionsOverlay');
+            const startGameBtn = document.getElementById('startGameBtn');
+            const howToPlayBtn = document.getElementById('howToPlayBtn');
+            const tutorialBtn = document.getElementById('tutorialBtn');
+            const modalOverlay = document.getElementById('modalOverlay');
+            const modalTitle = document.getElementById('modalTitle');
+            const modalSubtitle = document.getElementById('modalSubtitle');
+            const modalIcon = document.getElementById('modalIcon');
+            const modalActionBtn = document.getElementById('modalActionBtn');
+            const restartBtn = document.getElementById('restartBtn');
+            const successBanner = document.getElementById('successBanner');
+            const timeChangeNotice = document.getElementById('timeChangeNotice');
+
+            // Tutorial UI Elements
+            const tutorialOverlay = document.getElementById('tutorialOverlay');
+            const tutorialStepBadge = document.getElementById('tutorialStepBadge');
+            const tutorialStepInstruction = document.getElementById('tutorialStepInstruction');
+            const tutorialPointerArrow = document.getElementById('tutorialPointerArrow');
+            const skipTutorialBtn = document.getElementById('skipTutorialBtn');
+
+            // Tools
+            const toolRouterBtn = document.getElementById('toolRouter');
+            const toolCableBtn = document.getElementById('toolCable');
+            const toolDeleteBtn = document.getElementById('toolDelete');
+            const triggerCableCutBtn = document.getElementById('triggerCableCutBtn');
+            const triggerOverloadBtn = document.getElementById('triggerOverloadBtn');
+
+            // Game Logic & Adaptive Time State
+            let activeTool = 'router'; 
+            let isPlaying = false;
+            let packetsDelivered = 0;
+            const targetPackets = 20;
+            
+            // Time Limit in seconds (Default: 60s / 1 minute)
+            let currentLevelLimit = 60; 
+            let timeRemaining = currentLevelLimit;
+            let timerInterval = null;
+
+            let maxRouters = 6;
+            let availableRouters = 6;
+
+            // Tutorial State
+            let inTutorial = false;
+            let tutorialStep = 0; // 0: inactive, 1: click place router, 2: click canvas, 3: click cable, 4: drag sender to router, 5: drag router to dest
+            let tutorialPlacedRouter = null;
+
+            // Colors
+            const COLOR_BLUE = '#3b82f6';
+            const COLOR_RED = '#ef4444';
+            const COLOR_AMBER = '#f59e0b';
+            const COLOR_EMERALD = '#10b981';
+
+            // Entities
+            let nodes = [];
+            let connections = [];
+            let packets = [];
+
+            // Cable drawing state
+            let isConnecting = false;
+            let connectStartNode = null;
+            let mousePos = { x: 0, y: 0 };
+
+            function resizeCanvas() {
+                const rect = canvas.parentElement.getBoundingClientRect();
+                canvas.width = rect.width;
+                canvas.height = rect.height;
+                if (!isPlaying && nodes.length === 0) {
+                    initTopology();
+                }
+            }
+            window.addEventListener('resize', resizeCanvas);
+
+            // Node class
+            class Node {
+                constructor(id, type, x, y, color = null, name = '') {
+                    this.id = id;
+                    this.type = type; // 'sender', 'receiver', 'router'
+                    this.x = x;
+                    this.y = y;
+                    this.radius = type === 'router' ? 22 : 28;
+                    this.color = color;
+                    this.name = name;
+                    this.queue = [];
+                    this.maxQueue = 3;
+                    this.isFrozen = false;
+                    this.freezeTimer = 0;
+                }
+
+                draw(ctx) {
+                    ctx.save();
+                    
+                    // Overload ring
+                    if (this.isFrozen) {
+                        ctx.strokeStyle = COLOR_RED;
+                        ctx.lineWidth = 4;
+                        ctx.beginPath();
+                        ctx.arc(this.x, this.y, this.radius + 6, 0, Math.PI * 2);
+                        ctx.stroke();
+
+                        ctx.fillStyle = COLOR_RED;
+                        ctx.font = 'bold 10px Inter';
+                        ctx.textAlign = 'center';
+                        ctx.fillText('OVERLOAD', this.x, this.y - this.radius - 10);
+                    }
+
+                    // Node Body
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                    
+                    if (this.type === 'sender' || this.type === 'receiver') {
+                        ctx.fillStyle = '#1e293b';
+                        ctx.strokeStyle = this.color;
+                        ctx.lineWidth = 3;
+                    } else { // Router
+                        ctx.fillStyle = this.isFrozen ? '#450a0a' : '#0f172a';
+                        ctx.strokeStyle = this.isFrozen ? COLOR_RED : COLOR_BLUE;
+                        ctx.lineWidth = 2;
+                    }
+                    ctx.fill();
+                    ctx.stroke();
+
+                    // Icon / Text
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+
+                    if (this.type === 'sender') {
+                        ctx.fillStyle = this.color;
+                        ctx.font = '900 13px "Font Awesome 6 Free"';
+                        ctx.fillText('\uf1c0', this.x, this.y - 4);
+                        ctx.font = 'bold 9px Inter';
+                        ctx.fillStyle = '#94a3b8';
+                        ctx.fillText(this.name, this.x, this.y + 12);
+                    } else if (this.type === 'receiver') {
+                        ctx.fillStyle = this.color;
+                        ctx.font = '900 13px "Font Awesome 6 Free"';
+                        ctx.fillText('\uf233', this.x, this.y - 4);
+                        ctx.font = 'bold 9px Inter';
+                        ctx.fillStyle = '#94a3b8';
+                        ctx.fillText(this.name, this.x, this.y + 12);
+                    } else { // Router
+                        ctx.fillStyle = this.isFrozen ? COLOR_RED : '#60a5fa';
+                        ctx.font = '900 12px "Font Awesome 6 Free"';
+                        ctx.fillText('\uf6ff', this.x, this.y);
+
+                        // Queue Dots
+                        const dotRadius = 3;
+                        const spacing = 8;
+                        const startX = this.x - ((this.maxQueue - 1) * spacing) / 2;
+                        
+                        for (let i = 0; i < this.maxQueue; i++) {
+                            ctx.beginPath();
+                            ctx.arc(startX + (i * spacing), this.y + this.radius + 10, dotRadius, 0, Math.PI * 2);
+                            if (i < this.queue.length) {
+                                ctx.fillStyle = this.queue.length >= this.maxQueue ? COLOR_RED : COLOR_AMBER;
+                            } else {
+                                ctx.fillStyle = '#334155';
+                            }
+                            ctx.fill();
+                        }
+                    }
+
+                    ctx.restore();
+                }
+            }
+
+            // Packet class
+            class Packet {
+                constructor(fromNode, targetColor) {
+                    this.currentFrom = fromNode;
+                    this.currentTo = null;
+                    this.targetColor = targetColor;
+                    this.progress = 0;
+                    this.speed = 0.015;
+                    this.x = fromNode.x;
+                    this.y = fromNode.y;
+                }
+
+                update() {
+                    if (!this.currentTo) return;
+
+                    this.progress += this.speed;
+                    if (this.progress >= 1) {
+                        this.progress = 1;
+                        const arrivedNode = this.currentTo;
+                        this.currentFrom = arrivedNode;
+                        this.currentTo = null;
+                        this.progress = 0;
+
+                        handlePacketArrival(this, arrivedNode);
+                    } else {
+                        this.x = this.currentFrom.x + (this.currentTo.x - this.currentFrom.x) * this.progress;
+                        this.y = this.currentFrom.y + (this.currentTo.y - this.currentFrom.y) * this.progress;
+                    }
+                }
+
+                draw(ctx) {
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, 6, 0, Math.PI * 2);
+                    ctx.fillStyle = this.targetColor;
+                    ctx.fill();
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.lineWidth = 1.5;
+                    ctx.stroke();
+
+                    ctx.shadowColor = this.targetColor;
+                    ctx.shadowBlur = 8;
+                    ctx.restore();
+                }
+            }
+
+            function initTopology() {
+                nodes = [];
+                connections = [];
+                packets = [];
+                availableRouters = maxRouters;
+                updateRouterUI();
+
+                const width = canvas.width;
+                const height = canvas.height;
+
+                // Senders (Left)
+                nodes.push(new Node(1, 'sender', 80, height * 0.3, COLOR_BLUE, 'SRC-A'));
+                nodes.push(new Node(2, 'sender', 80, height * 0.7, COLOR_RED, 'SRC-B'));
+
+                // Receivers (Right)
+                nodes.push(new Node(3, 'receiver', width - 80, height * 0.3, COLOR_BLUE, 'DEST-A'));
+                nodes.push(new Node(4, 'receiver', width - 80, height * 0.7, COLOR_RED, 'DEST-B'));
+            }
+
+            function updateRouterUI() {
+                routerPoolEl.textContent = `${availableRouters} Left`;
+            }
+
+            let packetSpawnTimer = 0;
+
+            function spawnPackets() {
+                packetSpawnTimer++;
+                if (packetSpawnTimer > 110) {
+                    packetSpawnTimer = 0;
+                    
+                    const senders = nodes.filter(n => n.type === 'sender');
+                    const randomSender = senders[Math.floor(Math.random() * senders.length)];
+                    
+                    const newPacket = new Packet(randomSender, randomSender.color);
+                    packets.push(newPacket);
+                    
+                    routePacket(newPacket, randomSender);
+                }
+            }
+
+            function routePacket(packet, currentNode) {
+                if (currentNode.type === 'receiver') return;
+
+                const outgoingConnections = connections.filter(c => c.from === currentNode || c.to === currentNode);
+                if (outgoingConnections.length === 0) return;
+
+                let nextNode = null;
+                const neighbors = outgoingConnections.map(c => c.from === currentNode ? c.to : c.from);
+                const availableNeighbors = neighbors.filter(n => !n.isFrozen && n.queue.length < n.maxQueue);
+
+                if (availableNeighbors.length > 0) {
+                    const targetReceiver = nodes.find(n => n.type === 'receiver' && n.color === packet.targetColor);
+                    
+                    if (targetReceiver) {
+                        availableNeighbors.sort((a, b) => {
+                            const distA = Math.hypot(a.x - targetReceiver.x, a.y - targetReceiver.y);
+                            const distB = Math.hypot(b.x - targetReceiver.x, b.y - targetReceiver.y);
+                            return distA - distB;
+                        });
+                        nextNode = availableNeighbors[0];
+                    } else {
+                        nextNode = availableNeighbors[0];
+                    }
+                }
+
+                if (nextNode) {
+                    const qIdx = currentNode.queue.indexOf(packet);
+                    if (qIdx !== -1) currentNode.queue.splice(qIdx, 1);
+
+                    nextNode.queue.push(packet);
+                    packet.currentFrom = currentNode;
+                    packet.currentTo = nextNode;
+                    packet.progress = 0;
+
+                    if (nextNode.type === 'router' && nextNode.queue.length >= nextNode.maxQueue) {
+                        triggerNodeOverload(nextNode);
+                    }
+                }
+            }
+
+            function triggerNodeOverload(routerNode) {
+                routerNode.isFrozen = true;
+                routerNode.freezeTimer = 180;
+            }
+
+            function handlePacketArrival(packet, arrivedNode) {
+                if (arrivedNode.type === 'receiver') {
+                    if (packet.targetColor === arrivedNode.color) {
+                        packetsDelivered++;
+                        deliveredCounterEl.textContent = `${packetsDelivered} / ${targetPackets}`;
+                        
+                        if (packetsDelivered >= targetPackets) {
+                            endGame(true);
+                        }
+                    }
+                    const pIdx = packets.indexOf(packet);
+                    if (pIdx !== -1) packets.splice(pIdx, 1);
+
+                    const qIdx = arrivedNode.queue.indexOf(packet);
+                    if (qIdx !== -1) arrivedNode.queue.splice(qIdx, 1);
+                } else {
+                    routePacket(packet, arrivedNode);
+                }
+            }
+
+            function updateGameLogic() {
+                if (!isPlaying) return;
+
+                for (let i = packets.length - 1; i >= 0; i--) {
+                    const p = packets[i];
+                    if (p.currentTo) {
+                        p.update();
+                    } else {
+                        routePacket(p, p.currentFrom);
+                    }
+                }
+
+                nodes.forEach(node => {
+                    if (node.isFrozen) {
+                        node.freezeTimer--;
+                        if (node.freezeTimer <= 0) {
+                            node.isFrozen = false;
+                        }
+                    }
+                });
+
+                const overloadedRouters = nodes.filter(n => n.type === 'router' && n.isFrozen).length;
+                const totalRouters = nodes.filter(n => n.type === 'router').length;
+                let stressPct = totalRouters > 0 ? Math.round((overloadedRouters / totalRouters) * 100) : 0;
+                
+                let queueStress = 0;
+                nodes.filter(n => n.type === 'router').forEach(r => {
+                    queueStress += (r.queue.length / r.maxQueue) * 15;
+                });
+                stressPct = Math.min(100, Math.round(stressPct + queueStress));
+
+                stressTextEl.textContent = `${stressPct}%`;
+                stressBarEl.style.width = `${stressPct}%`;
+                if (stressPct > 60) {
+                    stressBarEl.className = 'bg-rose-500 h-full w-0 transition-all duration-300';
+                    stressTextEl.className = 'text-rose-400';
+                } else if (stressPct > 30) {
+                    stressBarEl.className = 'bg-amber-400 h-full w-0 transition-all duration-300';
+                    stressTextEl.className = 'text-amber-400';
+                } else {
+                    stressBarEl.className = 'bg-emerald-400 h-full w-0 transition-all duration-300';
+                    stressTextEl.className = 'text-emerald-400';
+                }
+
+                if (!inTutorial) {
+                    spawnPackets();
+                }
+            }
+
+            let dashOffset = 0;
+
+            function render() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                dashOffset -= 0.5;
+
+                connections.forEach(conn => {
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.moveTo(conn.from.x, conn.from.y);
+                    ctx.lineTo(conn.to.x, conn.to.y);
+                    
+                    ctx.strokeStyle = '#1e293b';
+                    ctx.lineWidth = 4;
+                    ctx.stroke();
+
+                    ctx.strokeStyle = '#3b82f6';
+                    ctx.lineWidth = 2;
+                    ctx.setLineDash([6, 6]);
+                    ctx.lineDashOffset = dashOffset;
+                    ctx.stroke();
+
+                    ctx.restore();
+                });
+
+                if (isConnecting && connectStartNode) {
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.moveTo(connectStartNode.x, connectStartNode.y);
+                    ctx.lineTo(mousePos.x, mousePos.y);
+                    ctx.strokeStyle = COLOR_EMERALD;
+                    ctx.lineWidth = 2;
+                    ctx.setLineDash([4, 4]);
+                    ctx.stroke();
+                    ctx.restore();
+                }
+
+                nodes.forEach(node => node.draw(ctx));
+                packets.forEach(packet => packet.draw(ctx));
+
+                // Render Tutorial Visual Canvas Cues
+                if (inTutorial) {
+                    drawTutorialCanvasHighlights();
+                }
+
+                if (isPlaying) {
+                    updateGameLogic();
+                }
+
+                requestAnimationFrame(render);
+            }
+
+            function getNodeAt(x, y) {
+                return nodes.find(node => {
+                    const dist = Math.hypot(node.x - x, node.y - y);
+                    return dist <= node.radius + 5;
+                });
+            }
+
+            canvas.addEventListener('mousedown', (e) => {
+                const rect = canvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+
+                const clickedNode = getNodeAt(x, y);
+
+                if (activeTool === 'router') {
+                    if (!clickedNode && availableRouters > 0) {
+                        const newNode = new Node(Date.now(), 'router', x, y);
+                        nodes.push(newNode);
+                        availableRouters--;
+                        updateRouterUI();
+
+                        if (inTutorial && tutorialStep === 2) {
+                            tutorialPlacedRouter = newNode;
+                            advanceTutorialStep(3);
+                        }
+                    }
+                } else if (activeTool === 'cable') {
+                    if (clickedNode) {
+                        isConnecting = true;
+                        connectStartNode = clickedNode;
+                        mousePos = { x, y };
+                    }
+                } else if (activeTool === 'delete') {
+                    if (clickedNode && clickedNode.type === 'router') {
+                        connections = connections.filter(c => c.from !== clickedNode && c.to !== clickedNode);
+                        nodes = nodes.filter(n => n !== clickedNode);
+                        availableRouters++;
+                        updateRouterUI();
+                    } else {
+                        const cableIndex = connections.findIndex(c => {
+                            const d = distToSegment({ x, y }, c.from, c.to);
+                            return d < 8;
+                        });
+                        if (cableIndex !== -1) {
+                            connections.splice(cableIndex, 1);
+                        }
+                    }
+                }
+            });
+
+            canvas.addEventListener('mousemove', (e) => {
+                const rect = canvas.getBoundingClientRect();
+                mousePos.x = e.clientX - rect.left;
+                mousePos.y = e.clientY - rect.top;
+            });
+
+            canvas.addEventListener('mouseup', (e) => {
+                if (isConnecting && connectStartNode) {
+                    const rect = canvas.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const y = e.clientY - rect.top;
+                    const targetNode = getNodeAt(x, y);
+
+                    if (targetNode && targetNode !== connectStartNode) {
+                        const exists = connections.some(c => 
+                            (c.from === connectStartNode && c.to === targetNode) ||
+                            (c.from === targetNode && c.to === connectStartNode)
+                        );
+
+                        if (!exists) {
+                            connections.push({ from: connectStartNode, to: targetNode });
+
+                            // Tutorial Step Validations
+                            if (inTutorial) {
+                                const senderA = nodes.find(n => n.id === 1);
+                                const receiverA = nodes.find(n => n.id === 3);
+
+                                if (tutorialStep === 4 && (
+                                    (connectStartNode === senderA && targetNode === tutorialPlacedRouter) ||
+                                    (connectStartNode === tutorialPlacedRouter && targetNode === senderA)
+                                )) {
+                                    advanceTutorialStep(5);
+                                } else if (tutorialStep === 5 && (
+                                    (connectStartNode === tutorialPlacedRouter && targetNode === receiverA) ||
+                                    (connectStartNode === receiverA && targetNode === tutorialPlacedRouter)
+                                )) {
+                                    completeTutorial();
+                                }
+                            }
+                        }
+                    }
+                }
+                isConnecting = false;
+                connectStartNode = null;
+            });
+
+            function distToSegment(p, v, w) {
+                const l2 = (v.x - w.x)**2 + (v.y - w.y)**2;
+                if (l2 === 0) return Math.hypot(p.x - v.x, p.y - v.y);
+                let t = ((p.x - v.x) * (w.x - v.x) + (p.y - v.y) * (w.y - v.y)) / l2;
+                t = Math.max(0, Math.min(1, t));
+                return Math.hypot(p.x - (v.x + t * (w.x - v.x)), p.y - (v.y + t * (w.y - v.y)));
+            }
+
+            toolRouterBtn.addEventListener('click', () => {
+                setTool('router');
+                if (inTutorial && tutorialStep === 1) {
+                    advanceTutorialStep(2);
+                }
+            });
+
+            toolCableBtn.addEventListener('click', () => {
+                setTool('cable');
+                if (inTutorial && tutorialStep === 3) {
+                    advanceTutorialStep(4);
+                }
+            });
+
+            toolDeleteBtn.addEventListener('click', () => setTool('delete'));
+
+            function setTool(tool) {
+                activeTool = tool;
+                [toolRouterBtn, toolCableBtn, toolDeleteBtn].forEach(btn => {
+                    btn.classList.remove('bg-blue-950/60', 'border-blue-500/50');
+                    btn.classList.add('bg-slate-800/40', 'border-slate-700/60');
+                });
+
+                if (tool === 'router') {
+                    toolRouterBtn.classList.add('bg-blue-950/60', 'border-blue-500/50');
+                } else if (tool === 'cable') {
+                    toolCableBtn.classList.add('bg-blue-950/60', 'border-blue-500/50');
+                } else if (tool === 'delete') {
+                    toolDeleteBtn.classList.add('bg-blue-950/60', 'border-blue-500/50');
+                }
+            }
+
+            triggerCableCutBtn.addEventListener('click', () => {
+                if (connections.length > 0) {
+                    const idx = Math.floor(Math.random() * connections.length);
+                    connections.splice(idx, 1);
+                }
+            });
+
+            triggerOverloadBtn.addEventListener('click', () => {
+                const routers = nodes.filter(n => n.type === 'router');
+                if (routers.length > 0) {
+                    const randomRouter = routers[Math.floor(Math.random() * routers.length)];
+                    triggerNodeOverload(randomRouter);
+                }
+            });
+
+            // How to Play & Tutorial Modal Triggers
+            howToPlayBtn.addEventListener('click', () => {
+                isPlaying = false;
+                instructionsOverlay.classList.remove('opacity-0', 'pointer-events-none');
+            });
+
+            tutorialBtn.addEventListener('click', () => {
+                instructionsOverlay.classList.add('opacity-0', 'pointer-events-none');
+                startInteractiveTutorial();
+            });
+
+            startGameBtn.addEventListener('click', () => {
+                instructionsOverlay.classList.add('opacity-0', 'pointer-events-none');
+                if (!localStorage.getItem('packet_panic_tutorial_done')) {
+                    startInteractiveTutorial();
+                } else {
+                    startSimulation();
+                }
+            });
+
+            skipTutorialBtn.addEventListener('click', () => {
+                endTutorial();
+                startSimulation();
+            });
+
+            function startInteractiveTutorial() {
+                inTutorial = true;
+                isPlaying = true;
+                clearInterval(timerInterval);
+                initTopology();
+
+                timerTextEl.textContent = "PAUSED";
+                limitBadgeEl.textContent = "(Tutorial Mode)";
+
+                tutorialOverlay.classList.remove('hidden');
+                advanceTutorialStep(1);
+            }
+
+            function advanceTutorialStep(stepNum) {
+                tutorialStep = stepNum;
+                tutorialStepBadge.textContent = `Step ${stepNum} of 5`;
+
+                if (stepNum === 1) {
+                    tutorialStepInstruction.innerHTML = '1. Click <b class="text-blue-400">"Place Router"</b> tool in the sidebar.';
+                    tutorialPointerArrow.innerHTML = '<i class="fa-solid fa-hand-point-left text-2xl"></i>';
+                } else if (stepNum === 2) {
+                    tutorialStepInstruction.innerHTML = '2. Click anywhere on the <b class="text-blue-400">Grid Canvas</b> to place a Router node.';
+                    tutorialPointerArrow.innerHTML = '<i class="fa-solid fa-hand-point-up text-2xl"></i>';
+                } else if (stepNum === 3) {
+                    tutorialStepInstruction.innerHTML = '3. Click <b class="text-emerald-400">"Draw Cable"</b> tool in the sidebar.';
+                    tutorialPointerArrow.innerHTML = '<i class="fa-solid fa-hand-point-left text-2xl"></i>';
+                } else if (stepNum === 4) {
+                    tutorialStepInstruction.innerHTML = '4. Click & drag from <b class="text-blue-400">SRC-A Node</b> to your placed <b class="text-blue-400">Router</b>.';
+                    tutorialPointerArrow.innerHTML = '<i class="fa-solid fa-hand-point-up text-2xl"></i>';
+                } else if (stepNum === 5) {
+                    tutorialStepInstruction.innerHTML = '5. Click & drag from your <b class="text-blue-400">Router</b> to <b class="text-blue-400">DEST-A Receiver</b>.';
+                    tutorialPointerArrow.innerHTML = '<i class="fa-solid fa-hand-point-up text-2xl"></i>';
+                }
+            }
+
+            function drawTutorialCanvasHighlights() {
+                ctx.save();
+                ctx.strokeStyle = COLOR_EMERALD;
+                ctx.lineWidth = 3;
+                ctx.setLineDash([6, 6]);
+
+                if (tutorialStep === 2) {
+                    const targetX = canvas.width * 0.5;
+                    const targetY = canvas.height * 0.5;
+                    ctx.beginPath();
+                    ctx.arc(targetX, targetY, 35, 0, Math.PI * 2);
+                    ctx.stroke();
+
+                    ctx.fillStyle = COLOR_EMERALD;
+                    ctx.font = 'bold 12px Inter';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('CLICK HERE TO PLACE ROUTER', targetX, targetY - 45);
+                } else if (tutorialStep === 4) {
+                    const senderA = nodes.find(n => n.id === 1);
+                    if (senderA && tutorialPlacedRouter) {
+                        ctx.beginPath();
+                        ctx.arc(senderA.x, senderA.y, senderA.radius + 10, 0, Math.PI * 2);
+                        ctx.stroke();
+
+                        ctx.beginPath();
+                        ctx.moveTo(senderA.x, senderA.y);
+                        ctx.lineTo(tutorialPlacedRouter.x, tutorialPlacedRouter.y);
+                        ctx.stroke();
+                    }
+                } else if (tutorialStep === 5) {
+                    const receiverA = nodes.find(n => n.id === 3);
+                    if (tutorialPlacedRouter && receiverA) {
+                        ctx.beginPath();
+                        ctx.arc(tutorialPlacedRouter.x, tutorialPlacedRouter.y, tutorialPlacedRouter.radius + 10, 0, Math.PI * 2);
+                        ctx.stroke();
+
+                        ctx.beginPath();
+                        ctx.moveTo(tutorialPlacedRouter.x, tutorialPlacedRouter.y);
+                        ctx.lineTo(receiverA.x, receiverA.y);
+                        ctx.stroke();
+                    }
+                }
+
+                ctx.restore();
+            }
+
+            function completeTutorial() {
+                localStorage.setItem('packet_panic_tutorial_done', 'true');
+                endTutorial();
+
+                modalOverlay.classList.remove('hidden');
+                successBanner.classList.add('hidden');
+                modalTitle.textContent = "Tutorial Completed!";
+                modalSubtitle.textContent = "You have learned how to place routers and route network cables. Ready for live network traffic?";
+                timeChangeNotice.innerHTML = `<i class="fa-solid fa-play text-emerald-400 mr-1"></i> Starting live simulation with a <b>${formatMinutes(currentLevelLimit)}</b> timer.`;
+                modalIcon.className = "w-16 h-16 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center mx-auto border border-indigo-500/40 text-2xl";
+                modalIcon.innerHTML = '<i class="fa-solid fa-circle-check"></i>';
+                modalActionBtn.textContent = "Start Main Game";
+            }
+
+            function endTutorial() {
+                inTutorial = false;
+                tutorialStep = 0;
+                tutorialOverlay.classList.add('hidden');
+            }
+
+            restartBtn.addEventListener('click', resetSimulation);
+            modalActionBtn.addEventListener('click', () => {
+                modalOverlay.classList.add('hidden');
+                resetSimulation();
+            });
+
+            function formatMinutes(seconds) {
+                const mins = Math.floor(seconds / 60);
+                const secs = seconds % 60;
+                return mins > 0 ? `${mins}m ${secs > 0 ? secs + 's' : ''}` : `${secs}s`;
+            }
+
+            function updateTimerDisplay() {
+                timerTextEl.textContent = `${timeRemaining}s`;
+                limitBadgeEl.textContent = `(Limit: ${formatMinutes(currentLevelLimit)})`;
+            }
+
+            function startSimulation() {
+                endTutorial();
+                isPlaying = true;
+                timeRemaining = currentLevelLimit;
+                packetsDelivered = 0;
+                deliveredCounterEl.textContent = `0 / ${targetPackets}`;
+                updateTimerDisplay();
+
+                if (timerInterval) clearInterval(timerInterval);
+                timerInterval = setInterval(() => {
+                    if (!isPlaying || inTutorial) return;
+                    timeRemaining--;
+                    updateTimerDisplay();
+
+                    if (timeRemaining <= 0) {
+                        endGame(packetsDelivered >= targetPackets);
+                    }
+                }, 1000);
+            }
+
+            function resetSimulation() {
+                clearInterval(timerInterval);
+                initTopology();
+                startSimulation();
+            }
+
+            // Game End with Adaptive Time Adjustments
+            function endGame(isVictory) {
+                isPlaying = false;
+                clearInterval(timerInterval);
+
+                modalOverlay.classList.remove('hidden');
+                document.getElementById('finalScore').textContent = `${packetsDelivered} / ${targetPackets}`;
+                document.getElementById('finalTime').textContent = `${timeRemaining}s`;
+                document.getElementById('finalStress').textContent = stressTextEl.textContent;
+
+                if (isVictory) {
+                    // Check if completed within 1 minute (60s)
+                    if (currentLevelLimit <= 60 || (currentLevelLimit - timeRemaining <= 60)) {
+                        successBanner.classList.remove('hidden');
+                    } else {
+                        successBanner.classList.add('hidden');
+                    }
+
+                    // Victory adjustments: Decrease time limit by 1 minute (60s) down to min floor of 60s
+                    if (currentLevelLimit > 60) {
+                        currentLevelLimit = Math.max(60, currentLevelLimit - 60);
+                        timeChangeNotice.innerHTML = `<i class="fa-solid fa-arrow-trend-down text-emerald-400 mr-1"></i> Great job! Time limit reduced by 1 minute for next round. <b>Next Limit: ${formatMinutes(currentLevelLimit)}</b>`;
+                    } else {
+                        timeChangeNotice.innerHTML = `<i class="fa-solid fa-fire text-amber-400 mr-1"></i> Master Rank Achieved! Playing at minimum floor of <b>1 Minute (60s)</b>.`;
+                    }
+
+                    modalTitle.textContent = "Network Restored!";
+                    modalSubtitle.textContent = "Outstanding routing! You delivered all packets smoothly under pressure.";
+                    modalIcon.className = "w-16 h-16 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto border border-emerald-500/40 text-2xl";
+                    modalIcon.innerHTML = '<i class="fa-solid fa-trophy"></i>';
+                    modalActionBtn.textContent = "Play Next Round";
+                } else {
+                    // Failure: Hide success banner
+                    successBanner.classList.add('hidden');
+
+                    // Failure adjustments: Increase time limit by +1 minute (60s)
+                    currentLevelLimit += 60;
+                    timeChangeNotice.innerHTML = `<i class="fa-solid fa-hourglass-half text-amber-400 mr-1"></i> Time increased by <b>+1 minute</b> for your next attempt! <b>(New Limit: ${formatMinutes(currentLevelLimit)})</b>`;
+
+                    modalTitle.textContent = "Network Crash!";
+                    modalSubtitle.textContent = "Packet loss or timer expiration exceeded limits. Reroute faster next time!";
+                    modalIcon.className = "w-16 h-16 rounded-full bg-rose-500/20 text-rose-400 flex items-center justify-center mx-auto border border-rose-500/40 text-2xl";
+                    modalIcon.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i>';
+                    modalActionBtn.textContent = "Try Again (+1 Min Added)";
+                }
+
+                updateTimerDisplay();
+            }
+
+            resizeCanvas();
+            render();
+        });
+    </script>
+</body>
+</html>
