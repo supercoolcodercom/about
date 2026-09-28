@@ -1,0 +1,394 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mini Language Model Lab - Phase 1</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#f5f7fb;color:#172033;line-height:1.5;font-size:16px}
+button,input,textarea{font:inherit}
+button{cursor:pointer}
+.app{max-width:800px;margin:0 auto;padding:20px}
+header{background:white;border:1px solid #dfe5ef;border-radius:14px;padding:18px 20px;margin-bottom:16px}
+h1,h2,h3{margin-top:0}
+h1{font-size:26px;margin-bottom:4px}
+.subtitle{margin:0;color:#5b6577}
+.topbar{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+.btn{border:1px solid #c8d0dd;background:white;border-radius:9px;padding:9px 13px;font-weight:bold;font-size:16px}
+.btn.primary{background:#26354d;color:white;border-color:#26354d}
+.btn.danger{border-color:#d6a4a4;color:#8a2222}
+.progress{margin-top:14px}
+.progressbar{height:12px;background:#e8ecf3;border-radius:99px;overflow:hidden}
+.progressfill{height:100%;width:0;background:#26354d;transition:width .25s}
+main{display:grid;grid-template-columns:1fr;gap:16px}
+.card{background:white;border:1px solid #dfe5ef;border-radius:14px;padding:20px;margin-bottom:16px;transition:opacity 0.3s}
+.next{border-left:5px solid #26354d; background:#e8ecf3}
+.next strong{display:block;font-size:18px;margin-bottom:5px}
+.step-title{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.badge{font-size:14px;padding:5px 10px;border-radius:99px;background:#eef1f6;color:#47546a;white-space:nowrap;font-weight:bold;transition:all 0.3s}
+.badge.active-badge{background:#cfe2ff;color:#084298}
+.badge.complete-badge{background:#d1e7dd;color:#0f5132}
+.instructions{background:#f8f9fc;border:1px solid #e2e6ee;border-radius:10px;padding:16px;font-size:16px}
+.instructions ol{margin:8px 0 0;padding-left:22px}
+.instructions li{margin-bottom:8px}
+textarea{width:100%;min-height:120px;resize:vertical;border:2px solid #bcc6d5;border-radius:9px;padding:12px;background:#fff;font-size:16px}
+input{width:100%;border:2px solid #bcc6d5;border-radius:9px;padding:11px;font-size:16px}
+.label{font-weight:700;margin:12px 0 6px;display:block}
+.row{display:flex;gap:9px;flex-wrap:wrap;margin-top:12px}
+.word-list{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.word{padding:10px 14px;border:1px solid #cbd3df;border-radius:8px;background:#f8f9fc;font-size:16px}
+.word:hover{background:#e8ecf3}
+.token-table{width:100%;border-collapse:collapse;margin-top:12px;font-size:16px}
+.token-table th,.token-table td{border-bottom:1px solid #e5e8ee;padding:10px;text-align:left}
+.token-table th{background:#f7f8fb}
+.number{font-weight:700}
+.output{background:#f8f9fc;border:1px solid #e2e6ee;border-radius:10px;padding:16px;margin-top:12px}
+.decode-box{font-size:24px;letter-spacing:1px;font-weight:bold;text-align:center}
+.choice{display:block;width:100%;text-align:left;border:2px solid #cbd3df;background:white;border-radius:9px;padding:16px;margin:8px 0;font-size:16px}
+.choice.correct{border-color:#477a52;background:#eef7ef}
+.choice.wrong{border-color:#a84b4b;background:#fbefef}
+.hidden{display:none}
+.small{font-size:14px;color:#687386;font-weight:bold}
+.complete{background:#f1f7f2;border:1px solid #c8dfcc;border-radius:10px;padding:24px;text-align:center}
+footer{color:#667085;font-size:14px;text-align:center;padding:12px}
+</style>
+</head>
+<body>
+<div class="app">
+<header>
+  <h1>Phase 1: Words Become Numbers</h1>
+  <div class="topbar">
+    <button class="btn" id="newBtn">New</button>
+    <button class="btn" id="exportBtn">Export</button>
+    <label class="btn">Import <input id="importInput" type="file" accept=".json" hidden></label>
+    <button class="btn danger" id="clearBtn">Clear</button>
+  </div>
+  <div class="progress">
+    <div class="small" id="progressText">0 of 5 complete</div>
+    <div class="progressbar"><div class="progressfill" id="progressFill"></div></div>
+  </div>
+</header>
+
+<main>
+<section>
+  <div class="card next">
+    <strong id="nextTitle">Your next step</strong>
+    <span id="nextText">Start with Activity 1.</span>
+  </div>
+
+  <div class="card" id="activity1">
+    <div class="step-title"><div><h2>1. Select Words</h2></div><span class="badge" id="b1">Not started</span></div>
+    <div class="instructions">
+      <ol>
+        <li>Click at least 3 words from the list below.</li>
+        <li>Look at your selected words in the box.</li>
+        <li>Click <b>I am ready</b>.</li>
+      </ol>
+    </div>
+    <div class="word-list" id="starterWords"></div>
+    <div class="output">
+      <strong>Your word box</strong>
+      <div id="selectedWords" class="word-list"><span class="small">Click some words above.</span></div>
+    </div>
+    <div class="row">
+      <button class="btn primary" id="done1">I am ready</button>
+    </div>
+  </div>
+
+  <div class="card" id="activity2">
+    <div class="step-title"><div><h2>2. Generate Numbers</h2></div><span class="badge" id="b2">Not started</span></div>
+    <div class="instructions">
+      <ol>
+        <li>Click <b>Make Numbers</b>.</li>
+        <li>Review the new number next to each word.</li>
+        <li>Click <b>I found the pattern</b>.</li>
+      </ol>
+    </div>
+    <button class="btn primary" id="makeNumbers">Make Numbers</button>
+    <div id="tokenOutput" class="output hidden"></div>
+    <div class="row">
+      <button class="btn hidden" id="done2">I found the pattern</button>
+    </div>
+  </div>
+
+  <div class="card" id="activity3">
+    <div class="step-title"><div><h2>3. Sentences to Numbers</h2></div><span class="badge" id="b3">Not started</span></div>
+    <div class="instructions">
+      <ol>
+        <li>Type a short sentence in the box.</li>
+        <li>Click <b>Turn Into Numbers</b>.</li>
+        <li>Click <b>I see it</b>.</li>
+      </ol>
+    </div>
+    <label class="label" for="sentenceInput">Your sentence</label>
+    <input id="sentenceInput" value="the cat likes fish">
+    <div class="row">
+      <button class="btn primary" id="encodeBtn">Turn Into Numbers</button>
+    </div>
+    <div id="encodeOutput" class="output hidden"></div>
+    <div class="row">
+      <button class="btn hidden" id="done3">I see it</button>
+    </div>
+  </div>
+
+  <div class="card" id="activity4">
+    <div class="step-title"><div><h2>4. Decode Numbers</h2></div><span class="badge" id="b4">Not started</span></div>
+    <div class="instructions">
+      <ol>
+        <li>Read the large numbers in the box below.</li>
+        <li>Click the sentence that matches those numbers.</li>
+        <li>Click <b>Next</b>.</li>
+      </ol>
+    </div>
+    <div class="output decode-box" id="decodeNumbers"></div>
+    <div id="choices"></div>
+    <div id="decodeFeedback"></div>
+    <div class="row">
+      <button class="btn hidden" id="done4">Next</button>
+    </div>
+  </div>
+
+  <div class="card" id="activity5">
+    <div class="step-title"><div><h2>5. Add Custom Words</h2></div><span class="badge" id="b5">Not started</span></div>
+    <div class="instructions">
+      <ol>
+        <li>Type 3 new words in the first box.</li>
+        <li>Click <b>Update Numbers</b>.</li>
+        <li>Type a sentence in the second box.</li>
+        <li>Click <b>Turn Into Numbers</b>.</li>
+        <li>Click <b>Finish Phase 1</b>.</li>
+      </ol>
+    </div>
+    <label class="label" for="customWords">Your words (one per line)</label>
+    <textarea id="customWords">robot
+castle
+dragon</textarea>
+    <div class="row">
+      <button class="btn primary" id="updateCustom">Update Numbers</button>
+    </div>
+    <div id="customOutput" class="output hidden"></div>
+    <label class="label" for="customSentence">Your sentence</label>
+    <input id="customSentence" placeholder="Example: robot sees dragon">
+    <div class="row">
+      <button class="btn primary" id="encodeCustom">Turn Into Numbers</button>
+    </div>
+    <div id="customEncodeOutput" class="output hidden"></div>
+    <div class="row">
+      <button class="btn hidden" id="done5">Finish Phase 1</button>
+    </div>
+  </div>
+
+  <div class="card hidden" id="completeCard">
+    <div class="complete">
+      <h2>Phase 1 complete!</h2>
+      <p>Text turns into tokens and numbers.</p>
+    </div>
+  </div>
+</section>
+</main>
+<footer>Works locally in your browser</footer>
+</div>
+
+<script>
+const STORAGE_KEY = "miniLLMLab_phase1_v3";
+const starter = ["the","cat","dog","bird","likes","eats","fish","milk","happy","small"];
+let state = loadState();
+
+function defaultState(){
+  return {
+    words:[...starter],
+    customWords:["robot","castle","dragon"],
+    completed:[false,false,false,false,false],
+    selected:[],
+    numbersMade:false,
+    customMade:false,
+    decodeDone:false
+  };
+}
+function loadState(){
+  try{
+    const raw=localStorage.getItem(STORAGE_KEY);
+    return raw ? {...defaultState(),...JSON.parse(raw)} : defaultState();
+  }catch(e){return defaultState();}
+}
+function save(){
+  localStorage.setItem(STORAGE_KEY,JSON.stringify(state));
+  renderProgress();
+}
+function mark(n){
+  state.completed[n-1]=true;
+  save();
+  renderProgress();
+  
+  // Auto-scroll logic
+  setTimeout(()=>{
+    if(n < 5){
+      const nextCard = document.getElementById("activity" + (n + 1));
+      if(nextCard) nextCard.scrollIntoView({behavior: "smooth", block: "start"});
+    } else {
+      const endCard = document.getElementById("completeCard");
+      if(endCard) endCard.scrollIntoView({behavior: "smooth", block: "start"});
+    }
+  }, 150);
+}
+function renderProgress(){
+  const count=state.completed.filter(Boolean).length;
+  document.getElementById("progressText").textContent=`${count} of 5 complete`;
+  document.getElementById("progressFill").style.width=(count/5*100)+"%";
+  
+  const next=state.completed.findIndex(x=>!x);
+  
+  for(let i=1;i<=5;i++){
+    const b=document.getElementById("b"+i);
+    const card=document.getElementById("activity"+i);
+    b.classList.remove("active-badge", "complete-badge");
+    
+    if(state.completed[i-1]){
+      b.textContent="Complete";
+      b.classList.add("complete-badge");
+      if(card) card.style.opacity="0.6";
+    }else if(i-1 === next){
+      b.textContent="Current";
+      b.classList.add("active-badge");
+      if(card) card.style.opacity="1";
+    }else{
+      b.textContent="Not started";
+      if(card) card.style.opacity="1";
+    }
+  }
+  
+  if(next===-1){
+    document.getElementById("nextTitle").textContent="All done!";
+    document.getElementById("nextText").textContent="You completed Phase 1.";
+  }else{
+    document.getElementById("nextTitle").textContent="Your next step";
+    document.getElementById("nextText").textContent=`Go to Activity ${next+1}.`;
+  }
+}
+function renderStarter(){
+  const box=document.getElementById("starterWords");
+  box.innerHTML="";
+  starter.forEach(w=>{
+    const b=document.createElement("button");
+    b.className="word"; b.textContent=w;
+    b.onclick=()=>{state.selected.push(w); renderSelected(); save();};
+    box.appendChild(b);
+  });
+}
+function renderSelected(){
+  const box=document.getElementById("selectedWords");
+  box.innerHTML="";
+  if(!state.selected.length){box.innerHTML='<span class="small">Click some words above.</span>';return;}
+  state.selected.forEach(w=>{const s=document.createElement("span");s.className="word";s.textContent=w;box.appendChild(s)});
+}
+function makeVocabulary(words){
+  const map={}; words.forEach((w,i)=>map[w]=i+1); return map;
+}
+function showTokenTable(words){
+  const map=makeVocabulary(words);
+  let html="<table class='token-table'><tr><th>Word</th><th>Number</th></tr>";
+  words.forEach(w=>html+=`<tr><td>${escapeHtml(w)}</td><td class="number">${map[w]}</td></tr>`);
+  return html+"</table>";
+}
+function encode(sentence, words){
+  const map=makeVocabulary(words);
+  const tokens=sentence.toLowerCase().trim().split(/\s+/).filter(Boolean);
+  return {tokens, ids:tokens.map(t=>map[t]||null)};
+}
+function renderDecode(){
+  const words=starter.slice(0,6);
+  const map=makeVocabulary(words);
+  const target=[map["the"],map["cat"],map["likes"],map["fish"]];
+  document.getElementById("decodeNumbers").textContent=target.join("  ");
+  const all=[
+    "the cat likes fish",
+    "the dog eats milk",
+    "cat fish likes the"
+  ].sort(()=>Math.random()-.5);
+  const box=document.getElementById("choices"); box.innerHTML="";
+  document.getElementById("decodeFeedback").innerHTML="";
+  all.forEach(c=>{
+    const b=document.createElement("button");b.className="choice";b.textContent=c;
+    b.onclick=()=>{
+      [...box.children].forEach(x=>x.disabled=true);
+      if(c==="the cat likes fish"){
+        b.classList.add("correct");
+        document.getElementById("decodeFeedback").innerHTML="<div class='output'><b>Correct!</b></div>";
+        document.getElementById("done4").classList.remove("hidden");
+        state.decodeDone=true; save();
+      }else{
+        b.classList.add("wrong");
+        document.getElementById("decodeFeedback").innerHTML="<div class='output'>Try again.</div>";
+        setTimeout(()=>{[...box.children].forEach(x=>{x.disabled=false;x.classList.remove("wrong")});document.getElementById("decodeFeedback").innerHTML=""},900);
+      }
+    };
+    box.appendChild(b);
+  });
+}
+function escapeHtml(s){return s.replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));}
+
+document.getElementById("done1").onclick=()=>{mark(1);document.getElementById("done1").textContent="Done";};
+document.getElementById("makeNumbers").onclick=()=>{
+  const out=document.getElementById("tokenOutput");
+  out.classList.remove("hidden"); out.innerHTML="<b>Word numbers:</b>"+showTokenTable(starter);
+  document.getElementById("done2").classList.remove("hidden");
+  state.numbersMade=true; save();
+};
+document.getElementById("done2").onclick=()=>{mark(2);document.getElementById("done2").textContent="Done";};
+document.getElementById("encodeBtn").onclick=()=>{
+  const result=encode(document.getElementById("sentenceInput").value,starter);
+  const out=document.getElementById("encodeOutput");out.classList.remove("hidden");
+  const pairs=result.tokens.map((t,i)=>`${escapeHtml(t)} → ${result.ids[i]===null?"?":result.ids[i]}`).join(" &nbsp; ");
+  out.innerHTML=`<b>Words → numbers</b><p>${pairs}</p>`;
+  document.getElementById("done3").classList.remove("hidden");
+};
+document.getElementById("done3").onclick=()=>{mark(3);document.getElementById("done3").textContent="Done";};
+document.getElementById("done4").onclick=()=>{mark(4);document.getElementById("done4").textContent="Done";};
+document.getElementById("updateCustom").onclick=()=>{
+  const ws=document.getElementById("customWords").value.toLowerCase().split(/\n|,/).map(x=>x.trim()).filter(Boolean);
+  state.customWords=[...new Set(ws)];
+  const combined=[...starter,...state.customWords.filter(w=>!starter.includes(w))];
+  const out=document.getElementById("customOutput");out.classList.remove("hidden");
+  out.innerHTML="<b>Vocabulary numbers:</b>"+showTokenTable(combined);
+  state.customMade=true;save();
+};
+document.getElementById("encodeCustom").onclick=()=>{
+  const combined=[...starter,...state.customWords.filter(w=>!starter.includes(w))];
+  const result=encode(document.getElementById("customSentence").value,combined);
+  const out=document.getElementById("customEncodeOutput");out.classList.remove("hidden");
+  out.innerHTML="<b>Words → numbers</b><p>"+result.tokens.map((t,i)=>`${escapeHtml(t)} → ${result.ids[i]===null?"?":result.ids[i]}`).join(" &nbsp; ")+"</p>";
+  document.getElementById("done5").classList.remove("hidden");
+};
+document.getElementById("done5").onclick=()=>{
+  mark(5); document.getElementById("done5").textContent="Done";
+  document.getElementById("completeCard").classList.remove("hidden");
+};
+document.getElementById("newBtn").onclick=()=>{
+  state=defaultState();save();location.reload();
+};
+document.getElementById("clearBtn").onclick=()=>{
+  localStorage.removeItem(STORAGE_KEY);location.reload();
+};
+document.getElementById("exportBtn").onclick=()=>{
+  const blob=new Blob([JSON.stringify(state,null,2)],{type:"application/json"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);
+  a.download="mini-llm-phase1.json";a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+};
+document.getElementById("importInput").onchange=(e)=>{
+  const file=e.target.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=()=>{
+    try{
+      const incoming=JSON.parse(reader.result);
+      state={...defaultState(),...incoming};save();location.reload();
+    }catch{alert("Error importing file.");}
+  };
+  reader.readAsText(file);
+};
+renderStarter();renderSelected();renderDecode();renderProgress();
+if(state.completed.every(Boolean))document.getElementById("completeCard").classList.remove("hidden");
+</script>
+</body>
+</html>
