@@ -1,0 +1,727 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mini Language Model Lab - Phase 5</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#f5f7fb;color:#172033;line-height:1.5;font-size:16px}
+button,input,textarea,select{font:inherit}
+button{cursor:pointer}
+.app{max-width:800px;margin:0 auto;padding:20px}
+header{background:white;border:1px solid #dfe5ef;border-radius:14px;padding:18px 20px;margin-bottom:16px}
+h1,h2,h3{margin-top:0}
+h1{font-size:26px;margin-bottom:4px}
+.subtitle{margin:0;color:#5b6577}
+.topbar{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+.btn{border:1px solid #c8d0dd;background:white;border-radius:9px;padding:9px 13px;font-weight:bold;font-size:16px}
+.btn.primary{background:#26354d;color:white;border-color:#26354d}
+.btn.danger{border-color:#d6a4a4;color:#8a2222}
+.progress{margin-top:14px}
+.progressbar{height:12px;background:#e8ecf3;border-radius:99px;overflow:hidden}
+.progressfill{height:100%;width:0;background:#26354d;transition:width .25s}
+main{display:grid;grid-template-columns:1fr;gap:16px}
+.card{background:white;border:1px solid #dfe5ef;border-radius:14px;padding:20px;margin-bottom:16px;transition:opacity 0.3s}
+.next{border-left:5px solid #26354d; background:#e8ecf3}
+.next strong{display:block;font-size:18px;margin-bottom:5px}
+.step-title{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.badge{font-size:14px;padding:5px 10px;border-radius:99px;background:#eef1f6;color:#47546a;white-space:nowrap;font-weight:bold;transition:all 0.3s}
+.badge.active-badge{background:#cfe2ff;color:#084298}
+.badge.complete-badge{background:#d1e7dd;color:#0f5132}
+.instructions{background:#f8f9fc;border:1px solid #e2e6ee;border-radius:10px;padding:16px;font-size:16px}
+.instructions ol{margin:8px 0 0;padding-left:22px}
+.instructions li{margin-bottom:8px}
+textarea,input,select{width:100%;border:2px solid #bcc6d5;border-radius:9px;padding:12px;background:#fff;font-size:16px}
+textarea{min-height:150px;resize:vertical}
+.label{font-weight:700;margin:12px 0 6px;display:block}
+.row{display:flex;gap:9px;flex-wrap:wrap;margin-top:12px}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px;margin-top:12px}
+.panel{background:#f8f9fc;border:1px solid #e2e6ee;border-radius:10px;padding:16px}
+.stat{font-size:24px;font-weight:bold}
+
+.bar{height:12px;background:#e3e7eb;border-radius:10px;overflow:hidden;margin-top:8px}
+.bar span{display:block;height:100%;width:0;background:#4b74c6;transition:width 0.3s}
+
+.output{background:#f8f9fc;border:1px solid #e2e6ee;border-radius:10px;padding:16px;margin-top:12px;font-size:18px;line-height:1.5}
+.example{background:#fff;border:1px solid #dce1e5;border-radius:6px;padding:10px;margin:7px 0;font-family:monospace;font-size:15px}
+
+.hidden{display:none}
+.small{font-size:14px;color:#687386;font-weight:bold}
+.complete{background:#f1f7f2;border:1px solid #c8dfcc;border-radius:10px;padding:24px;text-align:center}
+footer{color:#667085;font-size:14px;text-align:center;padding:12px}
+</style>
+</head>
+<body>
+<div class="app">
+<header>
+  <h1>Phase 5: Make Your Own Text Generator</h1>
+  <div class="topbar">
+    <button class="btn" id="newBtn">New</button>
+    <button class="btn" id="exportBtn">Export</button>
+    <label class="btn">Import <input id="importInput" type="file" accept=".json" hidden></label>
+    <button class="btn danger" id="clearBtn">Clear</button>
+  </div>
+  <div class="progress">
+    <div class="small" id="progressText">0 of 5 complete</div>
+    <div class="progressbar"><div class="progressfill" id="progressFill"></div></div>
+  </div>
+</header>
+
+<main>
+<section>
+  <div class="card next">
+    <strong id="nextTitle">Your next step</strong>
+    <span id="nextText">Start with Activity 1.</span>
+  </div>
+
+  <div class="card" id="activity1">
+    <div class="step-title"><div><h2>1. Choose Your Tiny World</h2></div><span class="badge" id="b1">Not started</span></div>
+    <div class="instructions">
+      <ol>
+        <li>Select a starting world from the dropdown menu.</li>
+        <li>Review the examples that will become your training data.</li>
+        <li>Click <b>Done</b>.</li>
+      </ol>
+    </div>
+    <label class="label">Select World</label>
+    <select id="world" onchange="loadWorld()">
+      <option value="robot">Robot World</option>
+      <option value="animal">Animal World</option>
+      <option value="space">Space World</option>
+      <option value="fantasy">Fantasy World</option>
+      <option value="weather">Weather World</option>
+    </select>
+    <div id="datasetPreview" style="margin-top:12px"></div>
+    <div class="row">
+      <button class="btn primary" id="done1">Done</button>
+    </div>
+  </div>
+
+  <div class="card" id="activity2">
+    <div class="step-title"><div><h2>2. Train Your Tiny Model</h2></div><span class="badge" id="b2">Not started</span></div>
+    <div class="instructions">
+      <ol>
+        <li>Review the examples in the box. Edit them if you want.</li>
+        <li>Click <b>Train My Model</b>.</li>
+        <li>Click <b>Done</b> once training is complete.</li>
+      </ol>
+    </div>
+    <label class="label" for="training">Training Examples</label>
+    <textarea id="training"></textarea>
+    <div class="row">
+      <button class="btn primary" onclick="train()">Train My Model</button>
+      <button class="btn" onclick="restoreData()">Restore Original</button>
+    </div>
+    <div class="panel" style="margin-top:14px">
+      <b>Training progress</b>
+      <div class="bar"><span id="trainbar"></span></div>
+      <p id="trainstatus" class="small" style="margin-top:8px">The model has not been trained yet.</p>
+    </div>
+    <div class="row">
+      <button class="btn hidden" id="done2">Done</button>
+    </div>
+  </div>
+
+  <div class="card" id="activity3">
+    <div class="step-title"><div><h2>3. Generate Text</h2></div><span class="badge" id="b3">Not started</span></div>
+    <div class="instructions">
+      <ol>
+        <li>Type a starting phrase in the box.</li>
+        <li>Click <b>Generate Next Word</b> at least twice.</li>
+        <li>Review how the generated text is built.</li>
+        <li>Click <b>Done</b>.</li>
+      </ol>
+    </div>
+    <label class="label" for="prompt">Starting phrase</label>
+    <input id="prompt" placeholder="For example: the robot">
+    <div class="row">
+      <button class="btn primary" id="generateNextWordBtn" type="button">Generate Next Word</button>
+      <button class="btn" id="resetGeneratedBtn" type="button">Reset</button>
+    </div>
+    
+    <div class="panel" style="margin-top:14px">
+      <b>Generated text</b>
+      <div class="output" id="output" style="margin-top:8px">the robot</div>
+    </div>
+    
+    <div class="grid" style="margin-top:14px">
+      <div class="panel">
+        <b>Last word</b>
+        <div id="lastWord" style="margin-top:6px;font-size:20px;font-weight:bold">-</div>
+      </div>
+      <div class="panel">
+        <b>Words generated</b>
+        <div class="stat" id="wordCount" style="margin-top:6px">0</div>
+      </div>
+    </div>
+    
+    <div class="grid" style="margin-top:14px">
+      <div class="panel">
+        <b>Next possible words</b>
+        <div id="nextPossibleWords" style="margin-top:8px">Train the model first.</div>
+      </div>
+      <div class="panel">
+        <b>Last prediction</b>
+        <div id="lastPrediction" style="margin-top:6px;font-size:20px;font-weight:bold">-</div>
+      </div>
+    </div>
+    <div class="row">
+      <button class="btn hidden" id="done3">Done</button>
+    </div>
+  </div>
+
+  <div class="card" id="activity4">
+    <div class="step-title"><div><h2>4. Run an Experiment</h2></div><span class="badge" id="b4">Not started</span></div>
+    <div class="instructions">
+      <ol>
+        <li>Add custom examples to the box to teach the model a new pattern.</li>
+        <li>Enter a starting phrase.</li>
+        <li>Click <b>Train + Generate</b> to test the new pattern.</li>
+        <li>Click <b>Done</b>.</li>
+      </ol>
+    </div>
+    <label class="label" for="experimentData">Custom training pattern</label>
+    <textarea id="experimentData"></textarea>
+    
+    <label class="label" for="experimentPrompt">Starting phrase</label>
+    <input id="experimentPrompt" placeholder="For example: the robot">
+    
+    <div class="row">
+      <button class="btn primary" onclick="experimentTrainGenerate()">Train + Generate</button>
+    </div>
+    <div class="output" id="experimentOutput" style="margin-top:14px">Experiment result will appear here.</div>
+    <div class="row">
+      <button class="btn hidden" id="done4">Done</button>
+    </div>
+  </div>
+
+  <div class="card" id="activity5">
+    <div class="step-title"><div><h2>5. Challenge: Build a Custom World</h2></div><span class="badge" id="b5">Not started</span></div>
+    <div class="instructions">
+      <ol>
+        <li>Type at least 5 custom sentences into the training box.</li>
+        <li>Type a starting phrase.</li>
+        <li>Click <b>Show Prediction</b>.</li>
+        <li>Click <b>Generate Next Word</b>.</li>
+        <li>Click <b>Finish Phase 5</b>.</li>
+      </ol>
+    </div>
+    <label class="label" for="challengeData">Your training sentences</label>
+    <textarea id="challengeData" rows="6"></textarea>
+    <label class="label" for="challengePrompt">Starting phrase</label>
+    <input id="challengePrompt">
+    
+    <div class="row">
+      <button class="btn primary" id="challengeShowPredictionBtn" type="button">1. Show Prediction</button>
+      <button class="btn primary" id="challengeNextBtn" type="button">2. Generate Next Word</button>
+    </div>
+    
+    <div class="panel" style="margin-top:14px">
+      <b>Generated text</b>
+      <div class="output" id="challengeOutput" style="margin-top:8px">Your mini-world text will appear here.</div>
+    </div>
+    
+    <div class="grid" style="margin-top:14px">
+      <div class="panel"><b>Last word</b><div id="challengeLastWord" style="margin-top:6px;font-size:20px;font-weight:bold">-</div></div>
+      <div class="panel"><b>Words generated</b><div class="stat" id="challengeWordCount" style="margin-top:6px">0</div></div>
+    </div>
+    
+    <div class="grid" style="margin-top:14px">
+      <div class="panel"><b>Next possible words</b>
+      <div id="challengeChoices" style="margin-top:8px">Train your mini world first.</div></div>
+      <div class="panel"><b>Last prediction</b><div id="challengeLastPrediction" style="margin-top:6px;font-size:20px;font-weight:bold">-</div></div>
+    </div>
+    
+    <div id="challengeFeedback" class="small" style="margin-top:12px"></div>
+    <div class="row">
+      <button class="btn hidden" id="done5">Finish Phase 5</button>
+    </div>
+  </div>
+
+  <div class="card hidden" id="completeCard">
+    <div class="complete">
+      <h2>Phase 5 complete!</h2>
+      <p>Language models use patterns and context to generate text one word at a time.</p>
+    </div>
+  </div>
+</section>
+</main>
+<footer>Works locally in your browser</footer>
+</div>
+
+<script>
+const KEY="miniLLMLab_phase5_v2";
+let state=load();
+
+function defaults(){
+  return{ completed:[false,false,false,false,false] };
+}
+function load(){
+  try{
+    let x=localStorage.getItem(KEY);
+    return x ? {...defaults(),...JSON.parse(x)} : defaults()
+  }catch{return defaults()}
+}
+function save(){
+  localStorage.setItem(KEY,JSON.stringify(state));
+  progress();
+}
+
+function progress(){
+  let n=state.completed.filter(Boolean).length;
+  document.getElementById("progressText").textContent=n+" of 5 complete";
+  document.getElementById("progressFill").style.width=(n*20)+"%";
+  
+  let next=state.completed.findIndex(x=>!x);
+  
+  for(let i=1;i<=5;i++){
+    let b=document.getElementById("b"+i);
+    let card=document.getElementById("activity"+i);
+    if (!b) continue;
+    b.classList.remove("active-badge", "complete-badge");
+    
+    if(state.completed[i-1]){
+      b.textContent="Complete";
+      b.classList.add("complete-badge");
+      if(card) card.style.opacity="0.6";
+    }else if(i-1 === next){
+      b.textContent="Current";
+      b.classList.add("active-badge");
+      if(card) card.style.opacity="1";
+    }else{
+      b.textContent="Not started";
+      if(card) card.style.opacity="1";
+    }
+  }
+  
+  if(next<0){
+    document.getElementById("nextTitle").textContent="All done!";
+    document.getElementById("nextText").textContent="You completed Phase 5.";
+  }else{
+    document.getElementById("nextTitle").textContent="Your next step";
+    document.getElementById("nextText").textContent="Go to Activity "+(next+1)+".";
+  }
+}
+
+function mark(i){
+  state.completed[i-1]=true;
+  save();
+  
+  setTimeout(()=>{
+    if(i < 5){
+      const nextCard = document.getElementById("activity" + (i + 1));
+      if(nextCard) nextCard.scrollIntoView({behavior: "smooth", block: "start"});
+    } else {
+      const endCard = document.getElementById("completeCard");
+      if(endCard) endCard.scrollIntoView({behavior: "smooth", block: "start"});
+    }
+  }, 150);
+}
+
+function normalizeTrainingText(text) {
+  return String(text || "").replace(/\\n/g, "\n").replace(/\r\n?/g, "\n");
+}
+function getTrainingLines(text) {
+  return normalizeTrainingText(text).split("\n").map(s => s.trim()).filter(Boolean);
+}
+
+const worlds={
+  robot:["the robot sees the ball","the robot picks up the ball","the robot moves forward","the robot reaches the door","the robot opens the door","the door leads to the room","the room has a table","the robot follows the path"],
+  animal:["the cat likes milk","the cat eats fish","the cat is small","the dog likes bones","the dog eats meat","the dog is big","the bird likes seeds","the bird eats worms","the bird is small"],
+  space:["the sun is hot","the sun is bright","the moon is round","the moon is white","mars is red","mars is cold","earth is blue","earth is round"],
+  fantasy:["the dragon lives in the cave","the dragon breathes fire","the wizard lives in the tower","the wizard uses magic","the knight rides a horse","the knight carries a sword","the castle has a gate","the castle has a tower"],
+  weather:["the sky is blue","the sky is cloudy","the rain is wet","the rain is cold","the sun is bright","the sun is hot","the wind is strong","the wind is cold"]
+};
+const startingPhrases={robot:"the robot", animal:"the cat", space:"the sun", fantasy:"the dragon", weather:"the rain"};
+
+let model=null;
+let a3GeneratedText="";
+let a3GeneratedCount=0;
+
+function currentData(){
+  return getTrainingLines(document.getElementById("training").value).map(x=>x.trim().toLowerCase()).filter(Boolean);
+}
+
+function restoreData(){
+  const world=document.getElementById("world").value;
+  const d=worlds[world].join("\n");
+  document.getElementById("training").value=d;
+  document.getElementById("experimentData").value=d;
+  const experimentPrompt=document.getElementById("experimentPrompt");
+  if(experimentPrompt){
+    const ex=startingPhrases[world]||"the robot";
+    experimentPrompt.value=ex;
+    experimentPrompt.placeholder="For example: "+ex;
+  }
+  const p=document.getElementById("prompt");
+  const example=startingPhrases[world]||"the robot";
+  if(p){p.value=example;p.placeholder="For example: "+example;}
+  model=null;
+  a3GeneratedText=example;
+  a3GeneratedCount=0;
+  
+  if(document.getElementById("output")) document.getElementById("output").textContent=example;
+  if(document.getElementById("lastWord")) document.getElementById("lastWord").textContent=example.split(/\s+/).pop();
+  if(document.getElementById("wordCount")) document.getElementById("wordCount").textContent="0";
+  if(document.getElementById("lastPrediction")) document.getElementById("lastPrediction").textContent="-";
+  
+  renderNextOptions();
+  document.getElementById("trainbar").style.width="0%";
+  document.getElementById("trainstatus").textContent="The model has not been trained yet.";
+}
+
+function loadWorld(){
+  restoreData();
+  document.getElementById("datasetPreview").innerHTML=worlds[document.getElementById("world").value].map(x=>`<div class="example">${x}</div>`).join("");
+}
+
+function buildModel(lines){
+  const next={};
+  lines.forEach(line=>{
+    const w=line.toLowerCase().replace(/[^a-z0-9' ]/g,"").split(/\s+/).filter(Boolean);
+    for(let i=0;i<w.length-1;i++){if(!next[w[i]])next[w[i]]={};next[w[i]][w[i+1]]=(next[w[i]][w[i+1]]||0)+1;}
+  });
+  return next;
+}
+
+function buildTwoWordModel(lines){
+  const m={};
+  for(const line of lines){
+    const words=String(line).toLowerCase().replace(/[^a-z0-9' ]/g,"").split(/\s+/).filter(Boolean);
+    for(let i=0;i<words.length-2;i++){
+      const key=words[i]+" "+words[i+1];
+      if(!m[key])m[key]={};
+      m[key][words[i+2]]=(m[key][words[i+2]]||0)+1;
+    }
+  }
+  return m;
+}
+
+function buildOneWordModel(lines){
+  const m={};
+  for(const line of lines){
+    const words=String(line).toLowerCase().replace(/[^a-z0-9' ]/g,"").split(/\s+/).filter(Boolean);
+    for(let i=0;i<words.length-1;i++){
+      const key=words[i];
+      if(!m[key])m[key]={};
+      m[key][words[i+1]]=(m[key][words[i+1]]||0)+1;
+    }
+  }
+  return m;
+}
+
+function train(){
+  const lines=currentData(); 
+  model=buildModel(lines);
+  const bar=document.getElementById("trainbar"), status=document.getElementById("trainstatus");
+  bar.style.width="20%";status.textContent="Reading training examples...";
+  setTimeout(()=>{bar.style.width="65%";status.textContent="Learning word patterns...";},300);
+  setTimeout(()=>{
+    bar.style.width="100%";
+    status.textContent=`Training complete. Learned patterns from ${lines.length} examples.`;
+    document.getElementById("done2").classList.remove("hidden");
+  },700);
+  localStorage.setItem("phase5_data",lines.join("\n"));
+}
+
+function getNextOptions(text){
+  const words=String(text||"").toLowerCase().replace(/[^a-z0-9' ]/g,"").split(/\s+/).filter(Boolean);
+  if(words.length===0)return [];
+
+  const lines=currentData();
+  let opts=null;
+
+  if(words.length>=2){
+    const model2=buildTwoWordModel(lines);
+    const key=words[words.length-2]+" "+words[words.length-1];
+    opts=model2[key]||null;
+  }else{
+    const model1=buildOneWordModel(lines);
+    opts=model1[words[0]]||null;
+  }
+
+  if(!opts)return [];
+  const total=Object.values(opts).reduce((a,b)=>a+b,0);
+  return Object.entries(opts)
+    .map(([word,count])=>({word,count,pct:count/total*100}))
+    .sort((a,b)=>b.count-a.count || a.word.localeCompare(b.word));
+}
+
+function renderNextOptions(){
+  const el=document.getElementById("nextPossibleWords");
+  const opts=getNextOptions(a3GeneratedText||document.getElementById("prompt").value);
+  if(!opts.length){
+    el.textContent="No learned next word for the current context.";
+    return;
+  }
+  el.innerHTML='<table style="width:100%;border-collapse:collapse;font-size:15px"><thead><tr><th style="text-align:left;padding:6px">Word</th><th style="text-align:right;padding:6px">Chance</th></tr></thead><tbody>'+
+    opts.slice(0,8).map(x=>'<tr><td style="padding:6px;border-top:1px solid #ddd">'+escapeHtmlA3(x.word)+'</td><td style="text-align:right;padding:6px;border-top:1px solid #ddd">'+x.pct.toFixed(0)+'%</td></tr>').join('')+
+    '</tbody></table>';
+}
+
+function syncA3Prompt(){
+  const p=document.getElementById("prompt");
+  if(!p)return;
+  a3GeneratedText=p.value.trim().toLowerCase();
+  a3GeneratedCount=0;
+  document.getElementById("output").textContent=a3GeneratedText||"-";
+  const words=a3GeneratedText.split(/\s+/).filter(Boolean);
+  document.getElementById("lastWord").textContent=words[words.length-1]||"-";
+  document.getElementById("wordCount").textContent="0";
+  document.getElementById("lastPrediction").textContent="-";
+  renderNextOptions();
+}
+
+function resetGeneratedText(){
+  const p=document.getElementById("prompt"); 
+  a3GeneratedText=(p.value.trim()||startingPhrases[document.getElementById("world").value]||"the robot").toLowerCase();
+  a3GeneratedCount=0;
+  document.getElementById("output").textContent=a3GeneratedText;
+  const w=a3GeneratedText.split(/\s+/).filter(Boolean);
+  document.getElementById("lastWord").textContent=w[w.length-1]||"-";
+  document.getElementById("wordCount").textContent="0";
+  document.getElementById("lastPrediction").textContent="-";
+  renderNextOptions();
+}
+
+function generateNextWord(){
+  if(!model){train();}
+  const typedPrompt=document.getElementById("prompt").value.trim().toLowerCase();
+  if(typedPrompt && (a3GeneratedCount===0 || typedPrompt!==a3GeneratedText.slice(0, typedPrompt.length))){
+    a3GeneratedText=typedPrompt;
+    a3GeneratedCount=0;
+  }
+  if(!a3GeneratedText)resetGeneratedText();
+
+  const opts=getNextOptions(a3GeneratedText);
+  if(!opts.length){
+    document.getElementById("lastPrediction").textContent="-";
+    return;
+  }
+
+  const total=opts.reduce((a,b)=>a+b.count,0);
+  let r=Math.random()*total, chosen=opts[0].word;
+  for(const x of opts){
+    r-=x.count;
+    if(r<0){chosen=x.word;break;}
+  }
+
+  a3GeneratedText+=" "+chosen;
+  a3GeneratedCount++;
+
+  document.getElementById("output").textContent=a3GeneratedText;
+  const w=a3GeneratedText.split(/\s+/).filter(Boolean);
+  document.getElementById("lastWord").textContent=w[w.length-1];
+  document.getElementById("wordCount").textContent=String(a3GeneratedCount);
+  document.getElementById("lastPrediction").textContent=chosen;
+  renderNextOptions();
+  
+  if(a3GeneratedCount >= 2){
+    document.getElementById("done3").classList.remove("hidden");
+  }
+}
+
+function escapeHtmlA3(s){
+  return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
+}
+
+// Activity 4 Experiment Logic
+function nextOptionsFromLines(text,lines){
+  const words=String(text||"").toLowerCase().replace(/[^a-z0-9' ]/g,"").split(/\s+/).filter(Boolean);
+  if(words.length===0)return [];
+  let opts=null;
+  if(words.length>=2){
+    const model2=buildTwoWordModel(lines);
+    const key=words[words.length-2]+" "+words[words.length-1];
+    opts=model2[key]||null;
+  }else{
+    const model1=buildOneWordModel(lines);
+    opts=model1[words[0]]||null;
+  }
+  if(!opts)return [];
+  const total=Object.values(opts).reduce((a,b)=>a+b,0);
+  return Object.entries(opts).map(([word,count])=>({word,count,pct:count/total*100})).sort((a,b)=>b.count-a.count || a.word.localeCompare(b.word));
+}
+
+function generateFromLines(prompt,lines,steps=10){
+  let words=prompt.toLowerCase().replace(/[^a-z0-9' ]/g,"").split(/\s+/).filter(Boolean);
+  let generated=0;
+  for(let i=0;i<steps;i++){
+    const opts=nextOptionsFromLines(words.join(" "),lines);
+    if(!opts.length)break;
+    words.push(opts[0].word);
+    generated++;
+  }
+  return {text:words.join(" "),generated};
+}
+
+function experimentTrainGenerate(){
+  const lines=getTrainingLines(document.getElementById("experimentData").value).map(x=>x.toLowerCase());
+  const feedback=document.getElementById("experimentOutput");
+  if(lines.length<5){
+    feedback.textContent="Add at least 5 training examples before running the experiment.";
+    return;
+  }
+
+  const world=document.getElementById("world").value;
+  const defaultPrompt=startingPhrases[world]||"the robot";
+  const input=document.getElementById("experimentPrompt");
+  const p=(input.value.trim().toLowerCase()||defaultPrompt);
+  input.value=p;
+
+  const r=generateFromLines(p,lines,12);
+  feedback.innerHTML="<b>Experiment result</b><br>"+escapeHtmlA3(r.text);
+  document.getElementById("done4").classList.remove("hidden");
+}
+
+// Activity 5 Challenge Logic
+let challengeModelV7=null;
+let challengeTextV7="";
+let challengeCountV7=0;
+
+function challengeLinesV7(){
+  const t=document.getElementById("challengeData");
+  return String(t?t.value:"").replace(/\\n/g,"\n").replace(/\r\n?/g,"\n").split("\n").map(s=>s.trim().toLowerCase()).filter(Boolean);
+}
+
+function buildChallengeModelV7(lines){
+  const m={};
+  for(const line of lines){
+    const w=line.replace(/[^a-z0-9' ]/g,"").split(/\s+/).filter(Boolean);
+    for(let i=0;i<w.length-2;i++){
+      const k=w[i]+" "+w[i+1];
+      if(!m[k])m[k]={};
+      m[k][w[i+2]]=(m[k][w[i+2]]||0)+1;
+    }
+  }
+  return m;
+}
+function buildChallengeOneWordModelV7(lines){
+  const m={};
+  for(const line of lines){
+    const w=line.replace(/[^a-z0-9' ]/g,"").split(/\s+/).filter(Boolean);
+    for(let i=0;i<w.length-1;i++){
+      const k=w[i];
+      if(!m[k])m[k]={};
+      m[k][w[i+1]]=(m[k][w[i+1]]||0)+1;
+    }
+  }
+  return m;
+}
+function challengeOptionsV7(){
+  const w=(challengeTextV7||"").replace(/[^a-z0-9' ]/g,"").split(/\s+/).filter(Boolean);
+  if(!challengeModelV7||w.length===0)return [];
+  let o=null;
+  if(w.length>=2){
+    const key=w[w.length-2]+" "+w[w.length-1];
+    o=challengeModelV7[key]||null;
+  }else{
+    const one=buildChallengeOneWordModelV7(challengeLinesV7());
+    o=one[w[0]]||null;
+  }
+  if(!o)return [];
+  const total=Object.values(o).reduce((a,b)=>a+b,0);
+  return Object.entries(o).map(([word,count])=>({word,count,pct:100*count/total})).sort((a,b)=>b.count-a.count || a.word.localeCompare(b.word));
+}
+function renderChallengeV7(){
+  const out=document.getElementById("challengeOutput"), last=document.getElementById("challengeLastWord");
+  const count=document.getElementById("challengeWordCount"), lp=document.getElementById("challengeLastPrediction");
+  const choices=document.getElementById("challengeChoices");
+  out.textContent=challengeTextV7||"Your mini-world text will appear here.";
+  const w=(challengeTextV7||"").split(/\s+/).filter(Boolean);
+  last.textContent=w[w.length-1]||"-";
+  count.textContent=String(challengeCountV7);
+  
+  const opts=challengeOptionsV7();
+  if(!opts.length){
+    choices.textContent="No learned next word for the current context.";
+    return;
+  }
+  choices.innerHTML='<table style="width:100%;border-collapse:collapse;font-size:15px"><thead><tr><th style="text-align:left;padding:6px">Word</th><th style="text-align:right;padding:6px">Chance</th></tr></thead><tbody>'+opts.slice(0,8).map(x=>'<tr><td style="padding:6px;border-top:1px solid #ddd">'+x.word+'</td><td style="text-align:right;padding:6px;border-top:1px solid #ddd">'+x.pct.toFixed(0)+'%</td></tr>').join('')+'</tbody></table>';
+}
+
+function showPredictionV7(){
+  const lines=challengeLinesV7(), fb=document.getElementById("challengeFeedback");
+  if(lines.length<5){fb.textContent="Add at least 5 training sentences before showing a prediction.";return;}
+  const prompt=document.getElementById("challengePrompt").value.trim().toLowerCase();
+  if(prompt.split(/\s+/).filter(Boolean).length<1){fb.textContent="Enter at least one word in Starting phrase.";return;}
+  
+  challengeModelV7=buildChallengeModelV7(lines);
+  challengeTextV7=prompt;
+  challengeCountV7=0;
+  document.getElementById("challengeLastPrediction").textContent="-";
+  renderChallengeV7();
+  
+  const opts=challengeOptionsV7();
+  fb.textContent=opts.length ? "Prediction shown. Click 2. Generate Next Word." : "No learned next word for this starting phrase.";
+}
+
+function generateChallengeNextV7(){
+  if(!challengeModelV7){showPredictionV7();if(!challengeModelV7)return;}
+  const opts=challengeOptionsV7(),fb=document.getElementById("challengeFeedback");
+  if(!opts.length){fb.textContent="No learned next word for this ending.";renderChallengeV7();return;}
+  
+  const total=opts.reduce((a,b)=>a+b.count,0);
+  let r=Math.random()*total,chosen=opts[0].word;
+  for(const x of opts){r-=x.count;if(r<0){chosen=x.word;break;}}
+  
+  challengeTextV7+=" "+chosen;
+  challengeCountV7++;
+  document.getElementById("challengeLastPrediction").textContent=chosen;
+  fb.textContent="";
+  renderChallengeV7();
+  document.getElementById("done5").classList.remove("hidden");
+}
+
+// Attach Event Listeners
+document.getElementById("done1").onclick=()=>{mark(1);document.getElementById("done1").textContent="Done"};
+document.getElementById("done2").onclick=()=>{mark(2);document.getElementById("done2").textContent="Done"};
+document.getElementById("done3").onclick=()=>{mark(3);document.getElementById("done3").textContent="Done"};
+document.getElementById("done4").onclick=()=>{mark(4);document.getElementById("done4").textContent="Done"};
+document.getElementById("done5").onclick=()=>{mark(5);document.getElementById("done5").textContent="Done";document.getElementById("completeCard").classList.remove("hidden")};
+
+document.getElementById("generateNextWordBtn").addEventListener("click",generateNextWord);
+document.getElementById("resetGeneratedBtn").addEventListener("click",resetGeneratedText);
+document.getElementById("prompt").addEventListener("input",syncA3Prompt);
+document.getElementById("challengeShowPredictionBtn").addEventListener("click",showPredictionV7);
+document.getElementById("challengeNextBtn").addEventListener("click",generateChallengeNextV7);
+
+// Topbar Utility Logic
+document.getElementById("newBtn").onclick=()=>{state=defaults();save();location.reload()};
+document.getElementById("clearBtn").onclick=()=>{localStorage.removeItem(KEY);location.reload()};
+document.getElementById("exportBtn").onclick=()=>{
+  let a=document.createElement("a");
+  a.href=URL.createObjectURL(new Blob([JSON.stringify(state,null,2)],{type:"application/json"}));
+  a.download="mini-llm-phase5.json";
+  a.click();
+};
+document.getElementById("importInput").onchange=e=>{
+  let f=e.target.files[0];
+  if(!f)return;
+  let r=new FileReader();
+  r.onload=()=>{
+    try{
+      let x=JSON.parse(r.result);
+      state={...defaults(),...x};
+      save();
+      location.reload();
+    }catch{alert("Error importing file.");}
+  };
+  r.readAsText(f);
+};
+
+// Initialization
+function init(){
+  loadWorld();
+  const saved=localStorage.getItem("phase5_data");
+  if(saved)document.getElementById("training").value=saved;
+  document.getElementById("experimentData").value=document.getElementById("training").value;
+  progress();
+  if(state.completed.every(Boolean)) document.getElementById("completeCard").classList.remove("hidden");
+}
+init();
+</script>
+</body>
+</html>
