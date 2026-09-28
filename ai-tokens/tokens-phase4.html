@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mini Language Model Lab - Phase 4</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#f4f6f8;color:#17202a;line-height:1.5}
+button,input{font:inherit}
+button{cursor:pointer}
+header{background:#17202a;color:#fff;padding:18px 24px;position:sticky;top:0;z-index:5}
+header h1{margin:0;font-size:22px}
+header p{margin:5px 0 0;color:#d7dde3;font-size:14px}
+nav{display:flex;gap:7px;flex-wrap:wrap;margin-top:14px}
+nav button{border:1px solid #6d7780;background:#263440;color:#fff;padding:8px 11px;border-radius:6px}
+nav button.active{background:#fff;color:#17202a}
+main{max-width:1050px;margin:24px auto;padding:0 18px}
+.card{background:#fff;border:1px solid #d8dde2;border-radius:10px;padding:20px;margin-bottom:18px;box-shadow:0 2px 7px rgba(0,0,0,.04)}
+h2,h3{margin-top:0}
+.small{font-size:13px;color:#5d6872}
+.idea{background:#eef4ff;border-left:5px solid #4b74c6;padding:14px;border-radius:5px}
+.next{background:#fff7df;border:1px solid #e5c45c;padding:15px;border-radius:7px}
+.activity{display:none}.activity.active{display:block}
+.progress{height:9px;background:#e3e7eb;border-radius:10px;overflow:hidden;margin:10px 0}
+.progress span{display:block;height:100%;width:0;background:#4b74c6}
+button.primary{background:#1d5fbf;color:white;border:0;border-radius:6px;padding:10px 15px}
+button.secondary{background:#eef1f4;color:#17202a;border:1px solid #c8ced4;border-radius:6px;padding:9px 13px}
+button:disabled{opacity:.5;cursor:not-allowed}
+.row{display:flex;gap:9px;flex-wrap:wrap;margin-top:12px}
+.step{display:flex;gap:12px;margin:12px 0}.num{width:28px;height:28px;border-radius:50%;background:#17202a;color:#fff;text-align:center;padding-top:4px;font-weight:bold;flex:none}
+.info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.info{background:#f7f8fa;border:1px solid #dce1e5;padding:12px;border-radius:7px}
+.sentence{font-size:22px;line-height:1.9;padding:18px;background:#f7f8fa;border:1px solid #dce1e5;border-radius:8px}
+.word{display:inline-block;padding:3px 6px;margin:1px;border-radius:5px}
+.word.clickable{cursor:pointer}
+.word.clickable:hover{outline:2px solid #9aa7b3}
+.word.target{background:#17202a;color:#fff}
+.word.high{background:#c7dcff;outline:2px solid #4b74c6}
+.word.medium{background:#e5efff;outline:1px solid #8aa8d8}
+.word.low{background:#f1f2f3}
+.blank{display:inline-block;min-width:78px;padding:2px 8px;border-bottom:3px solid #17202a;text-align:center}
+.prediction-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.prediction-card{background:#f8f9fb;border:1px solid #dce1e5;border-radius:8px;padding:14px}
+.prediction{display:grid;grid-template-columns:90px 1fr 55px;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid #e5e8ee}
+.prediction:last-child{border-bottom:0}
+.bar{height:12px;background:#e3e7eb;border-radius:99px;overflow:hidden}.bar span{display:block;height:100%;background:#4b74c6}
+.percent{text-align:right;font-weight:bold}
+.focus-row{display:grid;grid-template-columns:110px 1fr 70px;gap:10px;align-items:center;margin:9px 0}
+.focusbar{height:14px;background:#e3e7eb;border-radius:99px;overflow:hidden}.focusbar span{display:block;height:100%;background:#4b74c6}
+.choice{border:1px solid #d4d9de;border-radius:7px;padding:11px;margin:7px 0;background:#fff;cursor:pointer;text-align:left;width:100%}
+.choice:hover{background:#f4f6f8}.choice.selected{border-color:#4b74c6;background:#eef4ff}.choice.correct{border-color:#4d8a5b;background:#eaf5ec}.choice.wrong{border-color:#b34b4b;background:#faeded}
+.feedback{padding:12px;border-radius:6px;margin-top:10px;display:none}.good{background:#eaf5ec;border:1px solid #8abd93}.bad{background:#faeded;border:1px solid #d79797}
+.result{background:#f8f9fb;border:1px solid #dce1e5;border-radius:8px;padding:14px;margin-top:12px}
+.hidden{display:none}
+@media(max-width:800px){.prediction-grid{grid-template-columns:1fr}.sentence{font-size:19px}}
+footer{max-width:1050px;margin:30px auto;padding:0 18px 30px;color:#68727c;font-size:13px}
+</style>
+</head>
+<body>
+<header>
+  <h1>MINI LANGUAGE MODEL LAB</h1>
+  <p>Phase 4: Use the Clues Around It</p>
+  <nav>
+    <button data-act="home" class="active">Home</button>
+    <button data-act="a1">Activity 1</button>
+    <button data-act="a2">Activity 2</button>
+    <button data-act="a3">Activity 3</button>
+    <button data-act="a4">Activity 4</button>
+    <button data-act="a5">Challenge</button>
+  </nav>
+</header>
+
+<main>
+<section id="home" class="activity active">
+  <div class="card">
+    <h2>Phase 4: Use the Clues Around It</h2>
+    <div class="idea"><b>Today's idea:</b> A language model uses the words around a prediction to help decide what comes next.</div>
+    <p>This phase introduces <b>context</b> and <b>attention</b> using small visual experiments.</p>
+    <div class="info-grid">
+      <div class="info"><b>Context</b><br>The words and information around the part we are trying to predict.</div>
+      <div class="info"><b>Clue</b><br>A word that may help the prediction.</div>
+      <div class="info"><b>Attention</b><br>Giving more focus to some clues and less focus to others.</div>
+    </div>
+    <p class="small"><b>Important:</b> This laboratory uses a simplified teaching model. It helps you see the idea of attention, but it is not showing the actual calculations used inside a real Transformer.</p>
+    <div class="next"><b>YOUR NEXT STEP</b><br>Click <b>Activity 1</b>. Start by seeing why the words around a prediction matter.</div>
+  </div>
+  <div class="card">
+    <h3>What am I doing?</h3>
+    <div class="step"><div class="num">1</div><div>Look at the words around a prediction.</div></div>
+    <div class="step"><div class="num">2</div><div>Change the context and see whether the prediction changes.</div></div>
+    <div class="step"><div class="num">3</div><div>See that some words can be more useful than others.</div></div>
+    <div class="step"><div class="num">4</div><div>See how several clues can be used together.</div></div>
+  </div>
+</section>
+
+<section id="a1" class="activity">
+  <div class="card">
+    <h2>Activity 1: Context Matters</h2>
+    <p><b>Context</b> means the information around what the model is trying to predict.</p>
+    <p>Look at the same ending in two different situations.</p>
+    <div class="prediction-grid">
+      <div class="prediction-card">
+        <h3>Sentence A</h3>
+        <div class="sentence">The robot went to the garage and opened the <span class="blank">___</span>.</div>
+        <button class="primary" onclick="showPrediction1('garage')">Show Prediction</button>
+        <div id="predA1" class="result hidden"></div>
+      </div>
+      <div class="prediction-card">
+        <h3>Sentence B</h3>
+        <div class="sentence">The robot went to the kitchen and opened the <span class="blank">___</span>.</div>
+        <button class="primary" onclick="showPrediction1('kitchen')">Show Prediction</button>
+        <div id="predB1" class="result hidden"></div>
+      </div>
+    </div>
+    <div class="next"><b>THINK</b><br>The last few words before the blank were not the same. Did the useful clues change?</div>
+    <button class="primary" onclick="go('a2')">Continue</button>
+  </div>
+</section>
+
+<section id="a2" class="activity">
+  <div class="card">
+    <h2>Activity 2: Change the Context</h2>
+    <p>Change one part of the sentence. Then see how the next-word prediction changes.</p>
+    <div class="sentence" id="editableSentence">The robot walked into the <span class="blank">___</span> and looked around.</div>
+    <div class="row">
+      <button class="choice" id="ctxRoom" onclick="setContext2('room')">room</button>
+      <button class="choice" id="ctxForest" onclick="setContext2('forest')">forest</button>
+      <button class="choice" id="ctxKitchen" onclick="setContext2('kitchen')">kitchen</button>
+    </div>
+    <button class="primary" onclick="showPrediction2()">Show Prediction</button>
+    <div id="predA2" class="result hidden"></div>
+    <div class="next"><b>YOUR NEXT STEP</b><br>Choose <b>room</b>. Show the prediction. Then choose <b>kitchen</b> and show it again.</div>
+    <button class="secondary" onclick="go('a1')">Back</button>
+    <button class="primary" onclick="go('a3')">Continue</button>
+  </div>
+</section>
+
+<section id="a3" class="activity">
+  <div class="card">
+    <h2>Activity 3: Attention Is Focusing</h2>
+    <p>The model does not need every word to be equally useful. In this simple example, some words give stronger clues than others.</p>
+    <div class="sentence" id="attentionSentence"></div>
+    <button class="primary" onclick="showAttention3()">Show What the Model Focuses On</button>
+    <div id="attentionResult" class="result hidden"></div>
+    <div class="result">
+      <b>Simple meaning:</b><br>
+      Attention means giving more focus to some words and less focus to others.
+    </div>
+    <div class="next"><b>THINK</b><br>Which words received the strongest focus? Why might those words be useful for predicting what happens next?</div>
+    <button class="secondary" onclick="go('a2')">Back</button>
+    <button class="primary" onclick="go('a4')">Continue</button>
+  </div>
+</section>
+
+<section id="a4" class="activity">
+  <div class="card">
+    <h2>Activity 4: Use Several Clues</h2>
+    <p>A prediction can use more than one useful clue at the same time.</p>
+    <div class="sentence" id="severalSentence"></div>
+    <button class="primary" onclick="showSeveral4()">Show Useful Clues</button>
+    <div id="severalResult" class="result hidden"></div>
+    <div class="next"><b>YOUR NEXT STEP</b><br>Look at all the highlighted words. Notice that the model can use several clues together, not just one word.</div>
+    <button class="secondary" onclick="go('a3')">Back</button>
+    <button class="primary" onclick="go('a5')">Continue</button>
+  </div>
+</section>
+
+<section id="a5" class="activity">
+  <div class="card">
+    <h2>Challenge: What Should the Model Focus On?</h2>
+    <p>Read the sentence. Imagine that the model wants to predict what happens next.</p>
+    <div class="sentence">The robot carried the heavy box into the dark room.</div>
+    <p><b>Choose the 2 or 3 words you think would be useful clues for predicting what happens next.</b></p>
+    <div id="challengeChoices"></div>
+    <button class="primary" id="revealChallenge">Show the Model's Clues</button>
+    <div id="challengeResult" class="result hidden"></div>
+    <div class="result">
+      <b>Remember:</b> A useful clue is not a guarantee. Attention can help a model focus, but it does not mean the model perfectly understands the world.
+    </div>
+    <button class="secondary" onclick="go('a4')">Back</button>
+  </div>
+</section>
+</main>
+
+<footer>Mini Language Model Lab • Phase 4 • Saved in this browser</footer>
+
+<script>
+const A1={
+ garage:[
+  ['car',50],['box',25],['door',25]
+ ],
+ kitchen:[
+  ['door',50],['cabinet',25],['box',25]
+ ]
+};
+let context2='room';
+
+function esc(s){
+ return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+function predictionHTML(items){
+ return items.map(([w,p])=>`<div class="prediction"><b>${esc(w)}</b><div class="bar"><span style="width:${p}%"></span></div><div class="percent">${p}%</div></div>`).join('');
+}
+function showPrediction1(kind){
+ const id=kind==='garage'?'predA1':'predB1';
+ const box=document.getElementById(id);
+ box.classList.remove('hidden');
+ box.innerHTML='<b>Possible next words</b>'+predictionHTML(A1[kind])+
+ '<p class="small">The percentages in this teaching example represent how strongly the simplified model favors each choice.</p>';
+}
+function setContext2(value){
+ context2=value;
+ document.querySelectorAll('#a2 .choice').forEach(b=>b.classList.remove('selected'));
+ const id={room:'ctxRoom',forest:'ctxForest',kitchen:'ctxKitchen'}[value];
+ document.getElementById(id).classList.add('selected');
+ document.getElementById('editableSentence').innerHTML=`The robot walked into the <b>${esc(value)}</b> and looked around the <span class="blank">___</span>.`;
+ document.getElementById('predA2').classList.add('hidden');
+}
+function showPrediction2(){
+ const maps={
+  room:[['door',60],['table',25],['chair',15]],
+  forest:[['trees',60],['river',25],['cave',15]],
+  kitchen:[['table',50],['fridge',35],['door',15]]
+ };
+ const box=document.getElementById('predA2');
+ box.classList.remove('hidden');
+ box.innerHTML='<b>Possible next words</b>'+predictionHTML(maps[context2])+
+ '<p class="small">Changing the surrounding words changed the prediction choices.</p>';
+}
+const attentionWords=['The','robot','carried','the','heavy','box','into','the','dark','room'];
+const severalWords=['The','robot','carried','the','heavy','box','into','the','dark','room','.'];
+function renderWords(words,classes={}){
+ return words.map((w,i)=>{
+   const c=classes[i]?classes[i]:'';
+   return `<span class="word ${c}">${esc(w)}</span>`;
+ }).join(' ');
+}
+function showAttention3(){
+ const weights={1:['robot','high'],4:['heavy','high'],5:['box','high'],8:['dark','medium'],9:['room','medium']};
+ const classes={};
+ Object.keys(weights).forEach(i=>classes[i]=weights[i][1]);
+ document.getElementById('attentionSentence').innerHTML=renderWords(attentionWords,classes);
+ const rows=[
+  ['box',90,'Strong'],
+  ['heavy',80,'Strong'],
+  ['robot',70,'Strong'],
+  ['room',50,'Some'],
+  ['dark',45,'Some']
+ ];
+ document.getElementById('attentionResult').classList.remove('hidden');
+ document.getElementById('attentionResult').innerHTML='<b>Simple focus estimate</b>'+
+ rows.map(([w,p,l])=>`<div class="focus-row"><b>${w}</b><div class="focusbar"><span style="width:${p}%"></span></div><span>${l}</span></div>`).join('')+
+ '<p class="small">In this teaching example, the model gives more focus to words that describe the important object and situation.</p>';
+}
+function showSeveral4(){
+ const classes={1:'high',4:'high',5:'high',8:'medium',9:'medium'};
+ document.getElementById('severalSentence').innerHTML=renderWords(severalWords,classes);
+ document.getElementById('severalResult').classList.remove('hidden');
+ document.getElementById('severalResult').innerHTML=
+ '<b>Several clues are being used.</b><p>The highlighted words work together: <b>robot</b>, <b>heavy</b>, <b>box</b>, <b>dark</b>, and <b>room</b>. The model is not forced to use only one clue.</p>';
+}
+const challengeWords=['robot','carried','heavy','box','dark','room','the','into'];
+const strongest=new Set(['robot','heavy','box','room']);
+const selected=new Set();
+function makeChallenge(){
+ const c=document.getElementById('challengeChoices');
+ c.innerHTML='';
+ challengeWords.forEach(w=>{
+  const b=document.createElement('button');
+  b.className='choice';
+  b.textContent=w;
+  b.onclick=()=>{
+    if(selected.has(w)){selected.delete(w);b.classList.remove('selected')}
+    else{selected.add(w);b.classList.add('selected')}
+  };
+  c.appendChild(b);
+ });
+}
+document.getElementById('revealChallenge').onclick=()=>{
+ const box=document.getElementById('challengeResult');
+ box.classList.remove('hidden');
+ const picked=[...selected];
+ const good=picked.filter(x=>strongest.has(x)).length;
+ document.querySelectorAll('#challengeChoices .choice').forEach(b=>{
+   if(strongest.has(b.textContent)) b.classList.add('correct');
+   else if(selected.has(b.textContent)) b.classList.add('wrong');
+ });
+ box.innerHTML='<b>Model clues in this teaching example:</b> robot, heavy, box, room.'+
+ '<p>You selected '+(picked.length?picked.join(', '):'no words')+'. The point is not to find a perfect answer. The model can use several useful pieces of context together.</p>';
+};
+
+function go(id){
+ document.querySelectorAll('.activity').forEach(x=>x.classList.remove('active'));
+ document.getElementById(id).classList.add('active');
+ document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('active',x.dataset.act===id));
+ window.scrollTo({top:0,behavior:'smooth'});
+ localStorage.setItem('phase4_last',id);
+}
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>go(b.dataset.act));
+
+document.getElementById('attentionSentence').innerHTML=renderWords(attentionWords);
+document.getElementById('severalSentence').innerHTML=renderWords(severalWords);
+makeChallenge();
+
+const last=localStorage.getItem('phase4_last');
+if(last && document.getElementById(last))go(last);
+</script>
+</body>
+</html>
