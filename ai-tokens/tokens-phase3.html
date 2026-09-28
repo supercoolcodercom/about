@@ -1,0 +1,438 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mini Language Model Lab - Phase 3</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#f5f7fb;color:#172033;line-height:1.5;font-size:16px}
+button,input,textarea{font:inherit}
+button{cursor:pointer}
+.app{max-width:800px;margin:0 auto;padding:20px}
+header{background:white;border:1px solid #dfe5ef;border-radius:14px;padding:18px 20px;margin-bottom:16px}
+h1,h2,h3{margin-top:0}
+h1{font-size:26px;margin-bottom:4px}
+.subtitle{margin:0;color:#5b6577}
+.topbar{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+.btn{border:1px solid #c8d0dd;background:white;border-radius:9px;padding:9px 13px;font-weight:bold;font-size:16px}
+.btn.primary{background:#26354d;color:white;border-color:#26354d}
+.btn.danger{border-color:#d6a4a4;color:#8a2222}
+.progress{margin-top:14px}
+.progressbar{height:12px;background:#e8ecf3;border-radius:99px;overflow:hidden}
+.progressfill{height:100%;width:0;background:#26354d;transition:width .25s}
+main{display:grid;grid-template-columns:1fr;gap:16px}
+.card{background:white;border:1px solid #dfe5ef;border-radius:14px;padding:20px;margin-bottom:16px;transition:opacity 0.3s}
+.next{border-left:5px solid #26354d; background:#e8ecf3}
+.next strong{display:block;font-size:18px;margin-bottom:5px}
+.step-title{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.badge{font-size:14px;padding:5px 10px;border-radius:99px;background:#eef1f6;color:#47546a;white-space:nowrap;font-weight:bold;transition:all 0.3s}
+.badge.active-badge{background:#cfe2ff;color:#084298}
+.badge.complete-badge{background:#d1e7dd;color:#0f5132}
+.instructions{background:#f8f9fc;border:1px solid #e2e6ee;border-radius:10px;padding:16px;font-size:16px}
+.instructions ol{margin:8px 0 0;padding-left:22px}
+.instructions li{margin-bottom:8px}
+textarea{width:100%;min-height:145px;resize:vertical;border:2px solid #bcc6d5;border-radius:9px;padding:12px;background:#fff;font-size:16px}
+input{width:100%;border:2px solid #bcc6d5;border-radius:9px;padding:11px;font-size:16px}
+.label{font-weight:700;margin:12px 0 6px;display:block}
+.row{display:flex;gap:9px;flex-wrap:wrap;margin-top:12px}
+
+.statgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:12px}
+.stat{border:2px solid #dfe5ef;border-radius:10px;padding:16px;text-align:center}
+.stat b{display:block;font-size:24px;margin-top:4px}
+.prediction{display:grid;grid-template-columns:110px 1fr 60px;gap:9px;align-items:center;padding:10px 0;border-bottom:1px solid #e5e8ee;font-size:16px}
+.prediction:last-child{border:0}
+.bar{height:12px;background:#e3e7ee;border-radius:99px;overflow:hidden}
+.bar span{display:block;height:100%;background:#26354d;transition:width 0.3s}
+.percent{text-align:right;font-weight:700}
+.beforeafter{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:12px}
+.panel{background:#f8f9fc;border:1px solid #e2e6ee;border-radius:10px;padding:16px}
+.output{background:#f8f9fc;border:1px solid #e2e6ee;border-radius:10px;padding:16px;margin-top:12px}
+
+.choice{display:block;width:100%;text-align:left;border:2px solid #cbd3df;background:white;border-radius:9px;padding:16px;margin:8px 0;font-size:16px}
+.choice.correct{border-color:#477a52;background:#eef7ef}
+.choice.wrong{border-color:#a84b4b;background:#fbefef}
+.hidden{display:none}
+.small{font-size:14px;color:#687386;font-weight:bold}
+.complete{background:#f1f7f2;border:1px solid #c8dfcc;border-radius:10px;padding:24px;text-align:center}
+footer{color:#667085;font-size:14px;text-align:center;padding:12px}
+
+@media(max-width:600px){
+  .statgrid, .beforeafter{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div class="app">
+<header>
+  <h1>Phase 3: Teach the Model</h1>
+  <div class="topbar">
+    <button class="btn" id="newBtn">New</button>
+    <button class="btn" id="exportBtn">Export</button>
+    <label class="btn">Import <input id="importInput" type="file" accept=".json" hidden></label>
+    <button class="btn danger" id="clearBtn">Clear</button>
+  </div>
+  <div class="progress">
+    <div class="small" id="progressText">0 of 5 complete</div>
+    <div class="progressbar"><div class="progressfill" id="progressFill"></div></div>
+  </div>
+</header>
+
+<main>
+<section>
+  <div class="card next">
+    <strong id="nextTitle">Your next step</strong>
+    <span id="nextText">Start with Activity 1.</span>
+  </div>
+
+  <div class="card" id="activity1">
+    <div class="step-title"><div><h2>1. Review Initial State</h2></div><span class="badge" id="b1">Not started</span></div>
+    <div class="instructions">
+      <ol>
+        <li>Review the training examples below.</li>
+        <li>Review the starting prediction scores.</li>
+        <li>Click <b>Done</b>.</li>
+      </ol>
+    </div>
+    <div class="output" id="data1"></div>
+    <div class="statgrid">
+      <div class="stat"><span class="small">Training examples</span><b id="exampleCount">0</b></div>
+      <div class="stat"><span class="small">Most likely word</span><b id="topWord">-</b></div>
+      <div class="stat"><span class="small">Prediction score</span><b id="topScore">-</b></div>
+    </div>
+    <div class="output" id="pred1"></div>
+    <div class="row">
+      <button class="btn primary" id="done1">Done</button>
+    </div>
+  </div>
+
+  <div class="card" id="activity2">
+    <div class="step-title"><div><h2>2. Train with Examples</h2></div><span class="badge" id="b2">Not started</span></div>
+    <div class="instructions">
+      <ol>
+        <li>Paste the sentence <b>the robot likes batteries</b> 3 times into the box.</li>
+        <li>Click <b>Train</b>.</li>
+        <li>Click <b>Done</b>.</li>
+      </ol>
+    </div>
+    <label class="label" for="data2">Training examples</label>
+    <textarea id="data2"></textarea>
+    <div class="row">
+      <button class="btn primary" id="train2">Train</button>
+      <button class="btn" id="restore2">Restore Original Data</button>
+    </div>
+    <div id="training2" class="output hidden"></div>
+    <div class="row">
+      <button class="btn hidden" id="done2">Done</button>
+    </div>
+  </div>
+
+  <div class="card" id="activity3">
+    <div class="step-title"><div><h2>3. Compare Before & After</h2></div><span class="badge" id="b3">Not started</span></div>
+    <div class="instructions">
+      <ol>
+        <li>Click <b>Show Before</b>.</li>
+        <li>Click <b>Show After</b> to see how the scores changed based on your new data.</li>
+        <li>Click <b>Done</b>.</li>
+      </ol>
+    </div>
+    <div class="beforeafter">
+      <div class="panel"><h3>Before</h3><div id="before"></div></div>
+      <div class="panel"><h3>After</h3><div id="after"></div></div>
+    </div>
+    <div class="row">
+      <button class="btn primary" id="showBefore">Show Before</button>
+      <button class="btn primary" id="showAfter">Show After</button>
+    </div>
+    <div id="compareMsg" class="output hidden"></div>
+    <div class="row">
+      <button class="btn hidden" id="done3">Done</button>
+    </div>
+  </div>
+
+  <div class="card" id="activity4">
+    <div class="step-title"><div><h2>4. Target a Word</h2></div><span class="badge" id="b4">Not started</span></div>
+    <div class="instructions">
+      <ol>
+        <li>Click a target word below.</li>
+        <li>Paste the target sentence 5 times into the box.</li>
+        <li>Click <b>Train My Model</b>.</li>
+        <li>Click <b>Done</b> when your target is the most likely answer.</li>
+      </ol>
+    </div>
+    <label class="label">Choose a target</label>
+    <div class="row">
+      <button class="btn target" data-word="batteries">batteries</button>
+      <button class="btn target" data-word="pizza">pizza</button>
+      <button class="btn target" data-word="music">music</button>
+    </div>
+    <p id="targetMsg" class="small">Target: batteries</p>
+    <label class="label" for="data4">Your training examples</label>
+    <textarea id="data4"></textarea>
+    <div class="row">
+      <button class="btn primary" id="train4">Train My Model</button>
+      <button class="btn" id="restore4">Restore Original Data</button>
+    </div>
+    <div id="pred4" class="output hidden"></div>
+    <div class="row">
+      <button class="btn hidden" id="done4">Done</button>
+    </div>
+  </div>
+
+  <div class="card" id="activity5">
+    <div class="step-title"><div><h2>5. Test Model Logic</h2></div><span class="badge" id="b5">Not started</span></div>
+    <div class="instructions">
+      <ol>
+        <li>Click <b>Predict</b>.</li>
+        <li>Select the correct reason why the model guessed that word.</li>
+        <li>Click <b>Finish Phase 3</b>.</li>
+      </ol>
+    </div>
+    <div class="output"><b>Training data</b><div id="data5"></div></div>
+    <div class="row">
+      <button class="btn primary" id="predict5">Predict</button>
+    </div>
+    <div id="pred5" class="output hidden"></div>
+    <div id="breakChoices"></div>
+    <div id="breakFeedback"></div>
+    <div class="row">
+      <button class="btn hidden" id="done5">Finish Phase 3</button>
+    </div>
+  </div>
+
+  <div class="card hidden" id="completeCard">
+    <div class="complete">
+      <h2>Phase 3 complete!</h2>
+      <p>Training examples directly change the model's internal scores and predictions.</p>
+    </div>
+  </div>
+</section>
+</main>
+<footer>Works locally in your browser</footer>
+</div>
+
+<script>
+const KEY="miniLLMLab_phase3_v2";
+const START=["the robot likes pizza","the robot likes batteries","the robot likes music","the cat likes milk","the dog likes bones"];
+let state=load();
+
+function defaults(){
+  return{
+    data:[...START],
+    data4:START.slice(0,3),
+    target:"batteries",
+    completed:[false,false,false,false,false]
+  };
+}
+
+function load(){
+  try{
+    let x=localStorage.getItem(KEY);
+    return x ? {...defaults(),...JSON.parse(x)} : defaults()
+  }catch{return defaults()}
+}
+
+function save(){
+  localStorage.setItem(KEY,JSON.stringify(state));
+  progress();
+}
+
+function progress(){
+  let n=state.completed.filter(Boolean).length;
+  document.getElementById("progressText").textContent=n+" of 5 complete";
+  document.getElementById("progressFill").style.width=n*20+"%";
+  
+  let next=state.completed.findIndex(x=>!x);
+  
+  for(let i=1;i<=5;i++){
+    let b=document.getElementById("b"+i);
+    let card=document.getElementById("activity"+i);
+    if (!b) continue;
+    b.classList.remove("active-badge", "complete-badge");
+    
+    if(state.completed[i-1]){
+      b.textContent="Complete";
+      b.classList.add("complete-badge");
+      if(card) card.style.opacity="0.6";
+    }else if(i-1 === next){
+      b.textContent="Current";
+      b.classList.add("active-badge");
+      if(card) card.style.opacity="1";
+    }else{
+      b.textContent="Not started";
+      if(card) card.style.opacity="1";
+    }
+  }
+  
+  if(next<0){
+    document.getElementById("nextTitle").textContent="All done!";
+    document.getElementById("nextText").textContent="You completed Phase 3.";
+  }else{
+    document.getElementById("nextTitle").textContent="Your next step";
+    document.getElementById("nextText").textContent="Go to Activity "+(next+1)+".";
+  }
+}
+
+function mark(i){
+  state.completed[i-1]=true;
+  save();
+  
+  setTimeout(()=>{
+    if(i < 5){
+      const nextCard = document.getElementById("activity" + (i + 1));
+      if(nextCard) nextCard.scrollIntoView({behavior: "smooth", block: "start"});
+    } else {
+      const endCard = document.getElementById("completeCard");
+      if(endCard) endCard.scrollIntoView({behavior: "smooth", block: "start"});
+    }
+  }, 150);
+}
+
+function parse(t){return t.toLowerCase().split(/\n/).map(x=>x.trim()).filter(Boolean)}
+
+function pred(data,prefix){
+  let p=prefix.split(/\s+/),c={},total=0;
+  data.forEach(s=>{
+    let w=s.split(/\s+/);
+    if(w.length>p.length&&w.slice(0,p.length).join(" ")===p.join(" ")){
+      c[w[p.length]]=(c[w[p.length]]||0)+1;
+      total++;
+    }
+  });
+  return{e:Object.entries(c).sort((a,b)=>b[1]-a[1]),total}
+}
+
+function predictionHTML(data,prefix){
+  let r=pred(data,prefix);
+  if(!r.e.length)return"<p class='small'>No matching examples yet.</p>";
+  return r.e.map(([w,c])=>{
+    let pct=Math.round(c/r.total*100);
+    return"<div class='prediction'><b>"+esc(w)+"</b><div class='bar'><span style='width:"+pct+"%'></span></div><div class='percent'>"+pct+"%</div></div>"
+  }).join("")
+}
+
+function esc(s){return s.replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
+
+function render1(){
+  document.getElementById("data1").innerHTML=state.data.map(x=>"<div>"+esc(x)+"</div>").join("");
+  let r=pred(state.data,"the robot likes");
+  document.getElementById("exampleCount").textContent=state.data.length;
+  document.getElementById("pred1").innerHTML="<b>Starting prediction</b>"+predictionHTML(state.data,"the robot likes");
+  document.getElementById("topWord").textContent=r.e[0]?r.e[0][0]:"-";
+  document.getElementById("topScore").textContent=r.e[0]?Math.round(r.e[0][1]/r.total*100)+"%":"-";
+}
+render1();
+
+document.getElementById("done1").onclick=()=>{mark(1);document.getElementById("done1").textContent="Done"};
+
+document.getElementById("data2").value=state.data.join("\n");
+document.getElementById("train2").onclick=()=>{
+  state.data=parse(document.getElementById("data2").value);
+  save();
+  let box=document.getElementById("training2");
+  box.classList.remove("hidden");
+  box.innerHTML="<p><b>Success.</b> The model changed its scores based on the new examples.</p>";
+  document.getElementById("done2").classList.remove("hidden");
+};
+document.getElementById("restore2").onclick=()=>{
+  state.data=[...START];
+  document.getElementById("data2").value=state.data.join("\n");
+  save();
+  document.getElementById("training2").classList.add("hidden");
+};
+document.getElementById("done2").onclick=()=>{mark(2);document.getElementById("done2").textContent="Done"};
+
+document.getElementById("showBefore").onclick=()=>document.getElementById("before").innerHTML=predictionHTML(START,"the robot likes");
+document.getElementById("showAfter").onclick=()=>{
+  let d=parse(document.getElementById("data2").value);
+  document.getElementById("after").innerHTML=predictionHTML(d,"the robot likes");
+  document.getElementById("compareMsg").classList.remove("hidden");
+  document.getElementById("compareMsg").innerHTML="<b>Result:</b> The scores changed to match the new examples.";
+  document.getElementById("done3").classList.remove("hidden");
+};
+document.getElementById("done3").onclick=()=>{mark(3);document.getElementById("done3").textContent="Done"};
+
+document.getElementById("data4").value=state.data4.join("\n");
+document.querySelectorAll(".target").forEach(b=>b.onclick=()=>{
+  state.target=b.dataset.word;
+  document.getElementById("targetMsg").textContent="Target: "+state.target;
+  save();
+});
+document.getElementById("train4").onclick=()=>{
+  state.data4=parse(document.getElementById("data4").value);
+  save();
+  let out=document.getElementById("pred4");
+  out.classList.remove("hidden");
+  out.innerHTML="<b>Current prediction</b>"+predictionHTML(state.data4,"the robot likes");
+  let r=pred(state.data4,"the robot likes");
+  if(r.e[0]&&r.e[0][0]===state.target)document.getElementById("done4").classList.remove("hidden");
+};
+document.getElementById("restore4").onclick=()=>{
+  state.data4=START.slice(0,3);
+  document.getElementById("data4").value=state.data4.join("\n");
+  save();
+  document.getElementById("pred4").classList.add("hidden");
+  document.getElementById("done4").classList.add("hidden");
+};
+document.getElementById("done4").onclick=()=>{mark(4);document.getElementById("done4").textContent="Done"};
+
+const BREAK=["the robot can breathe underwater","the robot can breathe underwater","the robot can breathe underwater","the robot can breathe underwater"];
+document.getElementById("data5").innerHTML=BREAK.map(x=>"<div>"+x+"</div>").join("");
+document.getElementById("predict5").onclick=()=>{
+  let out=document.getElementById("pred5");
+  out.classList.remove("hidden");
+  out.innerHTML="<b>Prediction</b>"+predictionHTML(BREAK,"the robot can");
+  let q=document.getElementById("breakChoices");
+  q.innerHTML="<p><b>Why did it predict that?</b></p>";
+  
+  ["Because the examples repeatedly showed that pattern", "Because the model checked real world facts", "Because the model knows everything"].forEach((x,i)=>{
+    let b=document.createElement("button");
+    b.className="choice";b.textContent=x;
+    b.onclick=()=>{
+      document.querySelectorAll("#breakChoices .choice").forEach(btn=>btn.disabled=true);
+      if(i===0){
+        b.classList.add("correct");
+        document.getElementById("breakFeedback").innerHTML="<div class='output'><b>Correct.</b> The model just follows the pattern.</div>";
+        document.getElementById("done5").classList.remove("hidden");
+      }else{
+        b.classList.add("wrong");
+        document.getElementById("breakFeedback").innerHTML="<div class='output'>Try again.</div>";
+        setTimeout(()=>{
+          document.querySelectorAll("#breakChoices .choice").forEach(btn=>{btn.disabled=false; btn.classList.remove("wrong");});
+          document.getElementById("breakFeedback").innerHTML="";
+        }, 900);
+      }
+    };
+    q.appendChild(b);
+  });
+};
+document.getElementById("done5").onclick=()=>{mark(5);document.getElementById("done5").textContent="Done";document.getElementById("completeCard").classList.remove("hidden")};
+
+document.getElementById("newBtn").onclick=()=>{state=defaults();save();location.reload()};
+document.getElementById("clearBtn").onclick=()=>{localStorage.removeItem(KEY);location.reload()};
+document.getElementById("exportBtn").onclick=()=>{
+  let a=document.createElement("a");
+  a.href=URL.createObjectURL(new Blob([JSON.stringify(state,null,2)],{type:"application/json"}));
+  a.download="mini-llm-phase3.json";
+  a.click();
+};
+document.getElementById("importInput").onchange=e=>{
+  let f=e.target.files[0];
+  if(!f)return;
+  let r=new FileReader();
+  r.onload=()=>{
+    try{
+      let x=JSON.parse(r.result);
+      state={...defaults(),...x};
+      save();
+      location.reload();
+    }catch{alert("Error importing file.");}
+  };
+  r.readAsText(f);
+};
+
+progress();
+if(state.completed.every(Boolean)) document.getElementById("completeCard").classList.remove("hidden");
+</script>
+</body>
+</html>
